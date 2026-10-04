@@ -210,12 +210,12 @@ Result: 1 minute 13, vector-only, rendered in 2.5 minutes rather than an hour.
 ## Starting a new one
 
 ```bash
-G=~/video-pipeline/<piece-name>
+P=~/pieces/<piece-name>                                 # one directory per piece
 npx --yes hyperframes@latest init --name <project>      # scaffold, pins a CLI version
 # write plan.md first: what misconception it corrects, what the aha is, the beat list
-python3 tts_*.py                                        # one continuous take -> vo.wav + timings.json
-python3 build_*.py "$P"                                 # composition from the timings
-npm run check && npm run render
+python3 tools/tts.py script.txt "$P/vo"                 # one continuous take -> vo.wav + timings.json
+python3 templates/composition-generator.py "$P"         # composition from the timings
+cd "$P" && npm run check && npm run render
 # then the verify gate above, then the thumbnail, then the upload and the read-back
 ```
 
@@ -230,5 +230,6 @@ Project layout:
   out/                    the deliverable, the thumbnail, the web encode
 ```
 
-Reusable scripts live in `video-pipeline/tools/`: `tts_continuous.py`, `retime_continuous.py`,
-`verify_gaps.py`, `verify_upload.py`, `make_thumbnail.py`, `stage_assets.sh`.
+Reusable scripts live in `tools/`: `tts.py` (one take, plus boundaries measured against real pauses),
+`retime.py` (pace correction, every boundary rescaled), and `verify.py` (the check on the finished file, not
+on the project). The composition generator is `templates/composition-generator.py`.

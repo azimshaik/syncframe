@@ -23,7 +23,41 @@ re-running a generator and re-rendering, not re-cutting.
 | `tools/retime.py` | Correct a take to a target pace and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: pace, dead air, and whether the lines survived the mix |
 | `templates/composition-generator.py` | A beat-timed composition generator: a dark canvas, drawn-on shapes, an opacity ladder, and the framework contract already satisfied |
-| `STYLE.md` | The writing style for docs, replies and narration scripts, as one copy-able prompt |
+| `STYLE.md` | The writing style for docs, replies and narration scripts: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
+| `AGENTS.md` | Tells coding agents in this repository to follow `STYLE.md` |
+
+## Worked example: the knowledge graph piece
+
+Two cuts from one set of beats. The horizontal cut runs 3:08, the vertical cut runs 1:30, and both carry the
+same narration plan.
+
+- Horizontal: <https://youtu.be/xZbfV6jDHZ0>
+- Vertical, 9:16: <https://youtu.be/yj1ANPtfq5o>
+
+What that build measured, stage by stage:
+
+| Stage | What the numbers were |
+|---|---|
+| Script | 593 words, one paragraph per beat, ten beats |
+| One continuous take | 185.5 seconds, 192 words a minute, no per-line clips |
+| Boundaries | ten beat starts, snapped to the pauses the voice took |
+| Composition | generated from those timings, 1920x1080, one idea per beat |
+| Render | 5,613 frames at 30 fps |
+| Verify, on the file | -15.0 LUFS, and nine sampled frames checked by eye |
+| Deliver | uploaded unlisted, then read back from the API |
+
+Three lessons from that build became rules:
+
+1. **Roll more than one take.** The same 593-word script came back at 196 seconds (183 words a minute), 177
+   seconds (201 words a minute) and 185.5 seconds (192 words a minute) across three calls. Keep the
+   best-paced take instead of accepting the first one.
+2. **Swap captions at one instant.** Two captions with a crossfade in the same slot print through each other
+   and read as garbage. Swap them with a single set, which is what the 3Blue1Brown cuts do anyway.
+3. **Check what the naive baseline reads.** An early measurement of the same tool reported a 92x token
+   saving, by comparing the graph against reading the matched files for every question. That baseline claimed
+   more tokens than the whole corpus holds, so it was wrong. The tool's own benchmark gives 5.4x on
+   `psf/requests`: 78,600 tokens to read the corpus against 14,547 for an average query. The video and this
+   repository use the second number, with the caveat spoken on screen.
 
 ## Requirements
 
@@ -31,15 +65,14 @@ re-running a generator and re-rendering, not re-cutting.
 - Node 20+ and a headless-browser renderer for the composition. The template targets
   [HyperFrames](https://hyperframes.heygen.com) (`npx hyperframes`), an HTML/GSAP video renderer; the
   composition pattern is portable to any renderer that can seek a timeline and capture frames.
-- A TTS provider. The tools default to Gemini TTS, which has a usable free tier; any provider that returns
-  one continuous take works.
-- Optional: `xcode-select --install` if you want Manim for the diagram-led style. Manim needs a C compiler,
-  because pycairo ships no macOS wheel.
+- A TTS provider that returns **one continuous take**. Two are in use here: a cloned presenter voice for that
+  person's own channel, and Gemini TTS (`gemini-2.5-flash-preview-tts`) for a product voice, which is what
+  the knowledge graph cuts used.
 
 ## Quick start
 
 ```bash
-# 1. a script, one sentence per line
+# 1. a script, one paragraph per beat
 $EDITOR script.txt
 
 # 2. one continuous take, plus measured boundaries
@@ -71,8 +104,8 @@ footage, no voice models, and no credentials. Bring your own.
 
 ## Writing style
 
-Docs, commit messages, issue replies and narration scripts follow `STYLE.md`, which carries the prompt as one
-copy-able block. Short sentences, active voice, one term per thing, and the hedges kept.
+Docs, commit messages, issue replies and narration scripts follow `STYLE.md`. Short sentences, active voice,
+one term per thing, and the hedges kept.
 
 ## Licence
 
