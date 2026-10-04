@@ -82,6 +82,10 @@ text and to the beats that carry it:
 The STE limits and the caption rule agree. A 20-word sentence is about one caption line. That is not a
 coincidence. Both keep one idea in front of the reader at a time.
 
+`templates/composition-generator.py` applies the same rule. The caption for a beat is the first sentence of
+that paragraph. A first sentence under 40 characters takes the next sentence with it, so a short line does not
+look clipped. The result is one line, sometimes two, instead of the four or five a whole paragraph makes.
+
 ## The two themes
 
 The composition ships two palettes. Both use the same layout, the same grid and the same shapes. Only the

@@ -10,13 +10,20 @@ and place every beat on those boundaries. Re-record the voice and the beats move
 
 ## The result
 
-![The knowledge graph explainer, rendered by this pipeline](examples/knowledge-graph-example.gif)
+Dark, the reference look. 12 seconds from 1:40:
+
+![The knowledge graph explainer, dark theme](examples/knowledge-graph-example.gif)
+
+The same piece, same take, on the bright theme. 12 seconds from 1:11, and this one is straight out of the
+generator:
+
+![The same piece on the bright theme](examples/bright-theme.gif)
 
 3 minutes 8 seconds, ten beats, one continuous take, rendered from the 593 word script in
-`examples/knowledge-graph-script.txt` by the tools in this repository. Above: the terminal beat and the token
-bars, at 12 seconds of the finished cut.
+`examples/knowledge-graph-script.txt` by the tools in this repository. The shapes differ between the clips
+because the reference cut draws its bars by hand, while the generator reads a motif out of each paragraph.
 
-[Watch the full cut](https://youtu.be/xZbfV6jDHZ0) · the mp4 and the poster frame are in `examples/`.
+[Watch the full cut](https://youtu.be/xZbfV6jDHZ0) · the mp4 and the still frames are in `examples/`.
 
 ## Start here
 
@@ -91,6 +98,9 @@ python3 templates/composition-generator.py my-piece --motifs graph,steps,bars,ba
 A pack with nothing to work from falls back to `basic` for that beat, and the tool prints which motifs it
 used. That is why the worked example writes its numbers as words: the voice reads them aloud, and the `bars`
 pack wants digits. Write one paragraph with digits when you want the bars.
+
+The caption for a beat is the first sentence of its paragraph, so it stays one line. A caption of four or five
+lines reads as a subtitle dump, and the narration rules in `STYLE.md` do not allow it.
 
 ### Background
 

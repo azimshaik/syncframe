@@ -5,8 +5,9 @@ Usage: python3 templates/composition-generator.py <project-dir> [--vertical] [--
 
 Reads <project>/assets/voice/timings.json, or <project>/vo/timings.json.
 Writes <project>/index.html: one beat per paragraph, each beat placed on the measured
-start of that paragraph, with the take as one audio element. Every caption comes from
-your script, so nothing here is specific to any one video.
+start of that paragraph, with the take as one audio element. The caption for a beat is the
+first sentence of that paragraph, so it stays one line, as the narration rules require.
+Every caption comes from your script, so nothing here is specific to any one video.
 
 Motif packs (see --motifs). Content is read out of the paragraph, so a pack either has
 what it needs or falls back to `basic`:
@@ -132,11 +133,28 @@ else:
 
 
 def caption_text(text):
-    """One caption, capped so it cannot grow into the diagram above it."""
+    """One key line per beat, read out of the paragraph.
+
+    The reference cuts use one line per beat. A whole paragraph runs to four or five lines and
+    reads as a subtitle dump, so the caption is the first sentence of the paragraph. A very
+    short first sentence takes the next sentence with it, so the line does not look clipped.
+    The cap stays as a guard: a single long sentence still cannot grow into the diagram.
+    """
     t = " ".join(text.split())
-    if len(t) <= CAP_CHARS:
-        return t
-    return t[:CAP_CHARS].rsplit(" ", 1)[0] + "\u2026"
+    parts = [s.strip() for s in re.split(r"(?<=[.!?])\s+", t) if s.strip()]
+    cap = parts[0] if parts else t
+    if len(cap) < 40 and len(parts) > 1:
+        cap = (cap + " " + parts[1]).strip()
+    if len(cap) <= CAP_CHARS:
+        return cap
+    return cap[:CAP_CHARS].rsplit(" ", 1)[0] + "\u2026"
+
+
+def clip_words(text, limit):
+    """Cut on a word boundary, and say that you cut."""
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] + "\u2026"
 
 CSS = """
       :root { --bg:__BG__; --blue:__BLUE__; --green:__GREEN__; --yellow:__YELLOW__;
@@ -322,7 +340,7 @@ def pack_steps(i, text):
     rows, js = [], []
     for j, part in enumerate(parts):
         rows.append(f'<div class="row" id="{pre}r{j+1}" style="left:{x0}px; top:{y0 + j * pitch}px; '
-                    f'opacity:0"><span class="n">{j + 1}</span>&nbsp;&nbsp;{part[:40]}</div>')
+                    f'opacity:0"><span class="n">{j + 1}</span>&nbsp;&nbsp;{clip_words(part, 40)}</div>')
         js.append((f"#{pre}r{j+1}", "fade", 0.35 + j * 0.5, 0.45))
     return "".join(rows), "", js
 
