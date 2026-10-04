@@ -23,6 +23,7 @@ re-running a generator and re-rendering, not re-cutting.
 | `tools/retime.py` | Correct a take to a target pace and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: pace, dead air, and whether the lines survived the mix |
 | `templates/composition-generator.py` | A beat-timed composition generator: a dark canvas, drawn-on shapes, an opacity ladder, and the framework contract already satisfied |
+| `STYLE.md` | The writing style for docs, replies and narration scripts, as one copy-able prompt |
 
 ## Requirements
 
@@ -67,6 +68,11 @@ python3 tools/verify.py out.mp4 194 "the first line" "the last line"
 
 It is not a video editor, a template pack, or a product. There are no assets in here: no music, no fonts, no
 footage, no voice models, and no credentials. Bring your own.
+
+## Writing style
+
+Docs, commit messages, issue replies and narration scripts follow `STYLE.md`, which carries the prompt as one
+copy-able block. Short sentences, active voice, one term per thing, and the hedges kept.
 
 ## Licence
 
