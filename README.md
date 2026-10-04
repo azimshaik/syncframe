@@ -37,6 +37,26 @@ Three variations, when you need them:
 | You want the 9:16 cut | `python3 templates/composition-generator.py my-piece --vertical` |
 | The take is flat or rushed | roll another take, then regenerate. Pace varies between calls |
 
+### Motifs
+
+The generator draws one motif per beat, read out of that beat's paragraph. Pick the packs and
+they cycle across the beats:
+
+| Pack | What it draws | What the paragraph needs |
+|---|---|---|
+| `basic` (default) | four shapes, cycling: circle, bars, node ring, frame | nothing |
+| `graph` | a node for every paragraph, edges drawn on, this beat's node in green | three paragraphs or more |
+| `bars` | two or three bars, sized from the numbers in the paragraph | digits in that paragraph |
+| `steps` | the paragraph's sentences as a numbered list, revealed one at a time | two sentences or more |
+
+```bash
+python3 templates/composition-generator.py my-piece --motifs graph,steps,bars,basic
+```
+
+A pack with nothing to work from falls back to `basic` for that beat, and the tool prints which motifs it
+used. That is why the worked example writes its numbers as words: the voice reads them aloud, and the `bars`
+pack wants digits. Write one paragraph with digits when you want the bars.
+
 ## Use it from an agent
 
 The repository already carries the instructions each tool reads, so a clone is enough:
@@ -62,7 +82,7 @@ are not optional.
 | `tools/retime.py` | Correct a take to a target length, and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: size, frame rate, loudness, dead air, pace, and whether your phrases survived |
 | `tools/doctor.sh` | What this needs, and what is missing. It installs nothing |
-| `templates/composition-generator.py` | Build the composition: one beat per paragraph, four motifs cycling, beats placed on the measured boundaries |
+| `templates/composition-generator.py` | Build the composition: one beat per paragraph, four motif packs (`basic`, `graph`, `bars`, `steps`), beats placed on the measured boundaries |
 | `examples/knowledge-graph-script.txt` | The script of the worked example below |
 | `STYLE.md` | The writing style: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
 | `AGENTS.md` | The job, for any coding agent |
