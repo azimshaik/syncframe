@@ -41,10 +41,15 @@ What that build measured, stage by stage:
 | Script | 593 words, one paragraph per beat, ten beats |
 | One continuous take | 185.5 seconds, 192 words a minute, no per-line clips |
 | Boundaries | ten beat starts, snapped to the pauses the voice took |
-| Composition | generated from those timings, 1920x1080, one idea per beat |
-| Render | 5,613 frames at 30 fps |
+| Composition | one generated HTML file per cut: GSAP on a paused timeline, an SVG graph, and the voice as one audio element. 1920x1080, one idea per beat |
+| Renderer | HyperFrames 0.8.117: `npx hyperframes check` first, then `npx hyperframes render`. 5,613 frames at 30 fps, hardware GPU |
 | Verify, on the file | -15.0 LUFS, and nine sampled frames checked by eye |
 | Deliver | uploaded unlisted, then read back from the API |
+
+That build ran a project-local take tool and a timing filler, not the scripts in `tools/` by name. The steps
+are the same ones this repository describes: one continuous take with boundaries snapped to real pauses, a
+composition driven by those boundaries, and a check on the rendered file (loudness, and sampled frames). The
+scripts here are the reusable form of those steps.
 
 Three lessons from that build became rules:
 
