@@ -19,6 +19,7 @@ re-running a generator and re-rendering, not re-cutting.
 | Path | What it is |
 |---|---|
 | `docs/HOW-THE-EXPLAINERS-ARE-MADE.md` | The whole method: nine stages with commands, the narration and timing rules, the visual rules, the verify gate, thumbnails, upload, and a symptom/cause/fix table of every mistake that cost time |
+| `docs/HOW-A-PIECE-IS-BUILT.md` | The sequence for one piece: what you supply, what each stage produces, and the two gates that loop back. Mermaid, so it renders on GitHub |
 | `tools/tts.py` | One continuous narration take from a script, with the sentence boundaries measured by snapping word positions to the pauses the speaker actually took |
 | `tools/retime.py` | Correct a take to a target pace and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: pace, dead air, and whether the lines survived the mix |
