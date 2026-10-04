@@ -1,8 +1,9 @@
-# Explainers by narration timing
+# No AI slop: explainers by narration timing
 
 A method for making short explainer videos where the visuals land on the words, plus the parts of the
-toolchain worth reusing. Written from building several of these, including the mistakes, because the mistakes
-are the useful part.
+toolchain worth reusing. The narration is measured, not estimated, and the finished file is checked before it
+ships. Written from building several of these, including the mistakes, because the mistakes are the useful
+part.
 
 The narration is the timing source. Record one continuous take, measure where each paragraph starts inside it,
 and place every beat on those boundaries. Re-record the voice and the beats move with it.
