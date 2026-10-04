@@ -82,6 +82,27 @@ text and to the beats that carry it:
 The STE limits and the caption rule agree. A 20-word sentence is about one caption line. That is not a
 coincidence. Both keep one idea in front of the reader at a time.
 
+## The two themes
+
+The composition ships two palettes. Both use the same layout, the same grid and the same shapes. Only the
+tokens change. The generator holds them in one place (`THEMES`) and writes them into the generated HTML as CSS
+variables, so one change to a token changes every beat.
+
+| Token | `dark` (default) | `bright` | What it paints |
+|---|---|---|---|
+| `bg` | `#1C1C1C` | `#FAFAF7` | the page |
+| `ink` | `#ECECEC` | `#16181D` | captions and bar labels |
+| `dim` | `#888888` | `#5C5C5C` | the counter, node labels, the corner label |
+| `grid` | `#ECECEC` at 5% | `#16181D` at 6% | the background grid |
+| `blue` | `#58C4DD` | `#1E7FA6` | the drawn shapes |
+| `green` | `#83C167` | `#2F7D32` | this beat's node, the first bar |
+| `yellow` | `#FFFF00` | `#A97B00` | the accent line |
+| `muted` | `#3C3C3C` | `#BDBDB4` | the bars that are not the point |
+
+The accents are darker in `bright` on purpose. `#58C4DD` and `#FFFF00` read well on a dark page and wash out
+on a white one. Keep that rule when you add a token: pick the value against the background, then measure it.
+`npm run check` reports contrast, and the bright theme passes all 25 text checks against WCAG AA.
+
 ## Where the rules bend
 
 - **Relax the vocabulary before you write an awkward sentence.** When the approved word makes the sentence

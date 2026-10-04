@@ -68,6 +68,7 @@ Three variations, when you need them:
 |---|---|
 | The pace came out wrong | `python3 tools/retime.py my-piece/assets/voice 180` |
 | You want the 9:16 cut | `python3 templates/composition-generator.py my-piece --vertical` |
+| You want a light background | `python3 templates/composition-generator.py my-piece --theme bright` |
 | The take is flat or rushed | roll another take, then regenerate. Pace varies between calls |
 
 ### Motifs
@@ -90,6 +91,20 @@ A pack with nothing to work from falls back to `basic` for that beat, and the to
 used. That is why the worked example writes its numbers as words: the voice reads them aloud, and the `bars`
 pack wants digits. Write one paragraph with digits when you want the bars.
 
+### Background
+
+Two themes, one layout. `dark` is the default and the look of the worked example. `bright` puts the same
+grid, the same beats and the same shapes on paper: dark ink, and accents picked to hold on a white page.
+
+```bash
+python3 templates/composition-generator.py my-piece --theme bright
+```
+
+![The same composition on the bright theme](examples/bright-theme.png)
+
+Use `bright` for documents, slide decks and light pages, where a dark video looks pasted in. The tokens are in
+`THEMES` in the generator, and `STYLE.md` lists them with the reason each accent changes.
+
 ## What is in here
 
 | Path | What it is |
@@ -100,7 +115,7 @@ pack wants digits. Write one paragraph with digits when you want the bars.
 | `tools/retime.py` | Correct a take to a target length, and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: size, frame rate, loudness, dead air, pace, and whether your phrases survived |
 | `tools/doctor.sh` | What this needs, and what is missing. It installs nothing |
-| `templates/composition-generator.py` | Build the composition: one beat per paragraph, four motif packs (`basic`, `graph`, `bars`, `steps`), beats placed on the measured boundaries |
+| `templates/composition-generator.py` | Build the composition: one beat per paragraph, four motif packs (`basic`, `graph`, `bars`, `steps`), two themes (`dark`, `bright`), beats placed on the measured boundaries |
 | `examples/knowledge-graph-script.txt` | The script of the worked example below |
 | `STYLE.md` | The writing style: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
 | `AGENTS.md` | The job, for any coding agent |
@@ -160,8 +175,8 @@ Three lessons from that build became rules:
 ## What this is not
 
 It is not a video editor, a template pack, or a product. There are no media assets in here: no music, no fonts,
-no footage, no voice models, and no credentials. The single image in the repository is the diagram in `docs/`.
-Bring your own.
+no footage, no voice models, and no credentials. The images in `examples/` are output of this pipeline, and
+`docs/` holds one diagram. Everything else, bring your own.
 
 ## Writing style
 

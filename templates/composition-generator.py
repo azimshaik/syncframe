@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate a beat-timed composition from a measured narration take.
 
-Usage: python3 templates/composition-generator.py <project-dir> [--vertical] [--motifs a,b,c]
+Usage: python3 templates/composition-generator.py <project-dir> [--vertical] [--motifs a,b,c] [--theme dark|bright]
 
 Reads <project>/assets/voice/timings.json, or <project>/vo/timings.json.
 Writes <project>/index.html: one beat per paragraph, each beat placed on the measured
@@ -18,12 +18,30 @@ what it needs or falls back to `basic`:
 
 Default: basic. Example: --motifs graph,steps,bars,basic
 
+Theme (see --theme). `dark` is the default reference look. `bright` puts the same layout on
+paper: dark ink and deeper accents, so nothing gets lost on a white background. Use it for
+documents, slide decks and light-themed sites. Example: --theme bright
+
 The font is optional. With assets/fonts/IBMPlexMono-Regular.ttf you get the reference
 look; without it the composition asks for generic monospace and requests nothing.
 
 Then: npm run check, then npm run render.
 """
 import json, math, pathlib, re, sys
+
+# Two themes, one layout. The tokens cover the page, the grid and every drawn shape, so the
+# palette lives in one place. Bright is paper: dark ink and deeper accents, so contrast
+# still holds on a white background.
+THEMES = {
+    "dark":   {"bg": "#1C1C1C", "ink": "#ECECEC", "dim": "#888888", "grid": "#ECECEC",
+               "grid_opacity": ".05", "blue": "#58C4DD", "green": "#83C167",
+               "yellow": "#FFFF00", "muted": "#3C3C3C", "panel_bg": "#151515",
+               "panel_bd": "#333333"},
+    "bright": {"bg": "#FAFAF7", "ink": "#16181D", "dim": "#5C5C5C", "grid": "#16181D",
+               "grid_opacity": ".06", "blue": "#1E7FA6", "green": "#2F7D32",
+               "yellow": "#A97B00", "muted": "#BDBDB4", "panel_bg": "#EFEFEA",
+               "panel_bd": "#C9C9C2"},
+}
 
 argv = sys.argv[1:]
 flags = {a for a in argv if a.startswith("--")}
@@ -40,6 +58,17 @@ PACKS = [m.strip().lower() for m in MOTIFS.split(",") if m.strip()] or ["basic"]
 UNKNOWN = [m for m in PACKS if m not in ("basic", "graph", "bars", "steps")]
 if UNKNOWN:
     sys.exit(f"Unknown motif pack(s): {', '.join(UNKNOWN)}. Use basic, graph, bars or steps.")
+
+THEME = "dark"
+for _i, _a in enumerate(argv):
+    if _a == "--theme" and _i + 1 < len(argv):
+        THEME = argv[_i + 1]
+    elif _a.startswith("--theme="):
+        THEME = _a.split("=", 1)[1]
+THEME = THEME.strip().lower()
+if THEME not in THEMES:
+    sys.exit(f"Unknown theme: {THEME}. Use dark or bright.")
+C = THEMES[THEME]
 
 CANDIDATES = [P / "assets/voice/timings.json", P / "vo/timings.json", P / "timings.json"]
 tpath = next((p for p in CANDIDATES if p.exists()), None)
@@ -110,13 +139,13 @@ def caption_text(text):
     return t[:CAP_CHARS].rsplit(" ", 1)[0] + "\u2026"
 
 CSS = """
-      :root { --bg:#1C1C1C; --blue:#58C4DD; --green:#83C167; --yellow:#FFFF00;
-              --dim:#888888; --ink:#ECECEC; }
+      :root { --bg:__BG__; --blue:__BLUE__; --green:__GREEN__; --yellow:__YELLOW__;
+              --dim:__DIM__; --ink:__INK__; --muted:__MUTED__; }
       html, body { margin:0; padding:0; background:var(--bg); }
       .stage { position:relative; width:__W__px; height:__H__px; background:var(--bg); overflow:hidden; }
-      .grid { position:absolute; inset:0; opacity:.05;
-        background-image: linear-gradient(#ECECEC 1px, transparent 1px),
-                          linear-gradient(90deg, #ECECEC 1px, transparent 1px);
+      .grid { position:absolute; inset:0; opacity:__GRID_OPACITY__;
+        background-image: linear-gradient(__GRID__ 1px, transparent 1px),
+                          linear-gradient(90deg, __GRID__ 1px, transparent 1px);
         background-size: 120px 120px; }
       .clip { position:absolute; inset:0; }
       .cap { position:absolute; font-family:__MONO__; color:var(--ink); letter-spacing:.01em; }
@@ -132,8 +161,11 @@ CSS = """
       .barlabel { position:absolute; font-family:__MONO__; font-size:28px; color:var(--ink); }
       .row { position:absolute; font-family:__MONO__; font-size:38px; color:var(--ink); }
       .row .n { color:var(--blue); }
-      .panel { position:absolute; background:#151515; border:3px solid #333333; border-radius:8px; }
-""".replace("__W__", str(W)).replace("__H__", str(H)).replace("__MONO__", MONO) + CAP + NUM + TINY + "\n"
+      .panel { position:absolute; background:__PANEL_BG__; border:3px solid __PANEL_BD__; border-radius:8px; }
+""".replace("__W__", str(W)).replace("__H__", str(H)).replace("__MONO__", MONO)
+for _k, _v in C.items():
+    CSS = CSS.replace("__" + _k.upper() + "__", _v)
+CSS += CAP + NUM + TINY + "\n"
 
 
 def first_words(text, n=3, limit=18):
@@ -177,15 +209,15 @@ def pack_basic(i, text):
     pre = f"b{i}"
     if k == 0:
         r = 210 if not VERTICAL else 250
-        svg = (svg_open() + f'<circle class="stroke" id="{pre}s1" stroke="#58C4DD" cx="{CX}" cy="{CY}" r="{r}"/>'
-               + f'<circle class="stroke" id="{pre}s2" stroke="#83C167" cx="{CX}" cy="{CY}" r="{int(r * 0.34)}"/>'
+        svg = (svg_open() + f'<circle class="stroke" id="{pre}s1" stroke="{C["blue"]}" cx="{CX}" cy="{CY}" r="{r}"/>'
+               + f'<circle class="stroke" id="{pre}s2" stroke="{C["green"]}" cx="{CX}" cy="{CY}" r="{int(r * 0.34)}"/>'
                + '</svg>')
         js = [(f"#{pre}s1", "dash", 0.30, 1.4), (f"#{pre}s2", "dash", 1.30, 0.9)]
     elif k == 1:
         bw, gap = 84, 26
         total = 6 * bw + 5 * gap
         x0 = CX - total // 2
-        rects = "".join(f'<rect class="dot" id="{pre}s{j+1}" stroke="#58C4DD" x="{x0 + j * (bw + gap)}" '
+        rects = "".join(f'<rect class="dot" id="{pre}s{j+1}" stroke="{C["blue"]}" x="{x0 + j * (bw + gap)}" '
                         f'y="{CY - 40 + (j % 3) * 30}" width="{bw}" height="{120 - (j % 3) * 24}" rx="4"/>'
                         for j in range(6))
         svg = svg_open() + rects + '</svg>'
@@ -194,10 +226,10 @@ def pack_basic(i, text):
         n, r = 6, (230 if not VERTICAL else 260)
         pts = [(CX + r * math.cos(2 * math.pi * j / n - 1.57), CY + r * math.sin(2 * math.pi * j / n - 1.57))
                for j in range(n)]
-        lines = "".join(f'<line class="stroke" id="{pre}l{j+1}" stroke="#58C4DD" x1="{CX}" y1="{CY}" '
+        lines = "".join(f'<line class="stroke" id="{pre}l{j+1}" stroke="{C["blue"]}" x1="{CX}" y1="{CY}" '
                         f'x2="{x:.1f}" y2="{y:.1f}"/>' for j, (x, y) in enumerate(pts))
-        dots = (f'<circle class="dot" id="{pre}s0" stroke="#83C167" cx="{CX}" cy="{CY}" r="42"/>'
-                + "".join(f'<circle class="dot" id="{pre}s{j+1}" stroke="#58C4DD" cx="{x:.1f}" cy="{y:.1f}" r="26"/>'
+        dots = (f'<circle class="dot" id="{pre}s0" stroke="{C["green"]}" cx="{CX}" cy="{CY}" r="42"/>'
+                + "".join(f'<circle class="dot" id="{pre}s{j+1}" stroke="{C["blue"]}" cx="{x:.1f}" cy="{y:.1f}" r="26"/>'
                           for j, (x, y) in enumerate(pts)))
         svg = svg_open() + lines + dots + '</svg>'
         js = [(f"#{pre}l{j+1}", "dash", 0.30 + j * 0.10, 0.4) for j in range(n)]
@@ -207,9 +239,9 @@ def pack_basic(i, text):
         bw, bh = ((760, 520) if not VERTICAL else (820, 620))
         x0, y0 = CX - bw // 2, CY - bh // 2
         lid = y0 + int(bh * 0.30)
-        svg = (svg_open() + f'<path class="stroke" id="{pre}s1" stroke="#58C4DD" '
+        svg = (svg_open() + f'<path class="stroke" id="{pre}s1" stroke="{C["blue"]}" '
                f'd="M{x0} {y0} L{x0 + bw} {y0} L{x0 + bw} {y0 + bh} L{x0} {y0 + bh} Z"/>'
-               + f'<path class="stroke" id="{pre}s2" stroke="#FFFF00" d="M{x0} {lid} L{x0 + bw} {lid}"/>'
+               + f'<path class="stroke" id="{pre}s2" stroke="{C["yellow"]}" d="M{x0} {lid} L{x0 + bw} {lid}"/>'
                + '</svg>')
         js = [(f"#{pre}s1", "dash", 0.30, 1.4), (f"#{pre}s2", "dash", 1.40, 0.7)]
     return "", svg, js
@@ -226,11 +258,11 @@ def pack_graph(i, text):
     pts = [(CX + rx * math.cos(2 * math.pi * j / N - 1.57), CY + ry * math.sin(2 * math.pi * j / N - 1.57))
            for j in range(N)]
     edges = [(j, j + 1) for j in range(N - 1)] + [(j, j + 2) for j in range(0, N - 2, 3)]
-    lines = "".join(f'<line class="stroke" id="{pre}l{k+1}" stroke="#58C4DD" x1="{pts[a][0]:.1f}" '
+    lines = "".join(f'<line class="stroke" id="{pre}l{k+1}" stroke="{C["blue"]}" x1="{pts[a][0]:.1f}" '
                     f'y1="{pts[a][1]:.1f}" x2="{pts[b][0]:.1f}" y2="{pts[b][1]:.1f}"/>'
                     for k, (a, b) in enumerate(edges))
     dots = "".join(f'<circle class="dot" id="{pre}s{j+1}" '
-                   f'stroke="{"#83C167" if j == i else "#58C4DD"}" cx="{pts[j][0]:.1f}" cy="{pts[j][1]:.1f}" '
+                   f'stroke="{C["green"] if j == i else C["blue"]}" cx="{pts[j][0]:.1f}" cy="{pts[j][1]:.1f}" '
                    f'r="{34 if j == i else 24}"/>' for j in range(N))
     # Labels go outward along each node's radius, so neighbours diverge instead of stacking.
     # Above eight nodes the ring is too dense to label, so it stays clean.
@@ -266,7 +298,7 @@ def pack_bars(i, text):
     bars, labels, js = [], [], []
     for j, n in enumerate(top):
         w = max(24, int(maxw * (n["value"] / biggest)))
-        colour = "#83C167" if j == 0 else "#3C3C3C"
+        colour = C["green"] if j == 0 else C["muted"]
         bars.append(f'<div class="bar" id="{pre}b{j+1}" style="left:{x0}px; top:{y0 + j * pitch}px; '
                     f'width:{w}px; height:{bar_h}px; background:{colour}; opacity:0"></div>')
         label = (n["label"] + " " if n["label"] else "") + n["shown"]
@@ -376,6 +408,7 @@ HTML = f"""<!doctype html>
 (P / "index.html").write_text(HTML)
 print(f"wrote {P / 'index.html'}")
 print(f"{N} beats, {W}x{H}, voice {TOTAL:.2f}s, end {END:.2f}s, audio {wav_rel}")
+print(f"theme: {THEME}  bg {C['bg']}  ink {C['ink']}")
 print(f"motifs asked for: {PACKS}")
 print(f"motifs used:      {chosen}")
 print("next: cd", P, "&& npm run check && npm run render")
