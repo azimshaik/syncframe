@@ -7,6 +7,16 @@ are the useful part.
 The narration is the timing source. Record one continuous take, measure where each paragraph starts inside it,
 and place every beat on those boundaries. Re-record the voice and the beats move with it.
 
+## The result
+
+![The knowledge graph explainer, rendered by this pipeline](examples/knowledge-graph-example.gif)
+
+3 minutes 8 seconds, ten beats, one continuous take, rendered from the 593 word script in
+`examples/knowledge-graph-script.txt` by the tools in this repository. Above: the terminal beat and the token
+bars, at 12 seconds of the finished cut.
+
+[Watch the full cut](https://youtu.be/xZbfV6jDHZ0) · the mp4 and the poster frame are in `examples/`.
+
 ## Start here
 
 Two ways in. Ask your coding agent, or run the commands yourself. Either way, you bring a key and a script

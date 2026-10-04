@@ -5,6 +5,7 @@ node_modules/
 renders/
 media/
 *.mp4
+!examples/knowledge-graph-example.mp4
 *.wav
 *.mp3
 .env
