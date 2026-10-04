@@ -9,12 +9,35 @@ and place every beat on those boundaries. Re-record the voice and the beats move
 
 ## Start here
 
-**You bring two things: a key, and a script. One paragraph per beat.**
+Two ways in. Ask your coding agent, or run the commands yourself. Either way, you bring a key and a script
+with one paragraph per beat.
+
+### Ask your agent
 
 ```bash
 git clone https://github.com/azimshaik/syncframe.git
 cd syncframe
+```
 
+Then say what you want: "make a 90 second explainer about how a knowledge graph cuts token use". The
+repository ships the instructions each tool reads, so the agent runs the pipeline itself.
+
+| Tool | File it reads |
+|---|---|
+| Claude Code | `CLAUDE.md` |
+| Codex, OpenCode, Aider, Droid, Trae, and other `AGENTS.md` tools | `AGENTS.md` |
+| Gemini CLI, Antigravity | `GEMINI.md` |
+| Cursor | `.cursor/rules/syncframe.mdc` |
+| GitHub Copilot Chat | `.github/copilot-instructions.md` |
+
+Anything else: point it at `AGENTS.md`. It carries the commands, the script format, and the rules that are
+not optional.
+
+### Or run it yourself
+
+**You bring two things: a key, and a script. One paragraph per beat.**
+
+```bash
 bash tools/doctor.sh                        # what is missing. It installs nothing.
 export GEMINI_API_KEY=...                   # a free key from https://aistudio.google.com/apikey
 
@@ -56,21 +79,6 @@ python3 templates/composition-generator.py my-piece --motifs graph,steps,bars,ba
 A pack with nothing to work from falls back to `basic` for that beat, and the tool prints which motifs it
 used. That is why the worked example writes its numbers as words: the voice reads them aloud, and the `bars`
 pack wants digits. Write one paragraph with digits when you want the bars.
-
-## Use it from an agent
-
-The repository already carries the instructions each tool reads, so a clone is enough:
-
-| Tool | File it reads |
-|---|---|
-| Codex, OpenCode, Aider, Droid, Trae, and other `AGENTS.md` tools | `AGENTS.md` |
-| Claude Code | `CLAUDE.md` |
-| Gemini CLI, Antigravity | `GEMINI.md` |
-| Cursor | `.cursor/rules/syncframe.mdc` |
-| GitHub Copilot Chat | `.github/copilot-instructions.md` |
-
-Any other agent: point it at `AGENTS.md`. It carries the four commands, the script format, and the rules that
-are not optional.
 
 ## What is in here
 
