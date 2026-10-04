@@ -4,15 +4,53 @@ A method for making short explainer videos where the visuals land on the words, 
 toolchain worth reusing. Written from building several of these, including the mistakes, because the mistakes
 are the useful part.
 
-## The idea
+The narration is the timing source. Record one continuous take, measure where each paragraph starts inside it,
+and place every beat on those boundaries. Re-record the voice and the beats move with it.
 
-Record **one continuous narration take**. Measure where each sentence actually starts inside it. Build a
-single HTML page on a seekable timeline where every beat is placed on those boundaries. Render it with a
-headless browser. Then run the checks on the **rendered file**, not on the project, because a project can pass
-and the file still be wrong.
+## Start here
 
-No editor timeline, no keyframes by hand. The narration is the timing source, and re-recording the voice means
-re-running a generator and re-rendering, not re-cutting.
+**You bring two things: a key, and a script. One paragraph per beat.**
+
+```bash
+git clone https://github.com/azimshaik/syncframe.git
+cd syncframe
+
+bash tools/doctor.sh                        # what is missing. It installs nothing.
+export GEMINI_API_KEY=...                   # a free key from https://aistudio.google.com/apikey
+
+npx --yes hyperframes@latest init my-piece  # scaffold the renderer project
+$EDITOR my-piece/script.txt                 # one paragraph per beat, plain text
+python3 tools/tts.py my-piece/script.txt my-piece/assets/voice
+python3 templates/composition-generator.py my-piece
+cd my-piece && npm run check && npm run render
+cd .. && python3 tools/verify.py my-piece/renders/*.mp4 <word-count>
+```
+
+That is the whole path. `examples/knowledge-graph-script.txt` is the script behind the worked example below,
+so you can run the steps above unchanged and get the same shape of video out.
+
+Three variations, when you need them:
+
+| Situation | Command |
+|---|---|
+| The pace came out wrong | `python3 tools/retime.py my-piece/assets/voice 180` |
+| You want the 9:16 cut | `python3 templates/composition-generator.py my-piece --vertical` |
+| The take is flat or rushed | roll another take, then regenerate. Pace varies between calls |
+
+## Use it from an agent
+
+The repository already carries the instructions each tool reads, so a clone is enough:
+
+| Tool | File it reads |
+|---|---|
+| Codex, OpenCode, Aider, Droid, Trae, and other `AGENTS.md` tools | `AGENTS.md` |
+| Claude Code | `CLAUDE.md` |
+| Gemini CLI, Antigravity | `GEMINI.md` |
+| Cursor | `.cursor/rules/syncframe.mdc` |
+| GitHub Copilot Chat | `.github/copilot-instructions.md` |
+
+Any other agent: point it at `AGENTS.md`. It carries the four commands, the script format, and the rules that
+are not optional.
 
 ## What is in here
 
@@ -20,17 +58,19 @@ re-running a generator and re-rendering, not re-cutting.
 |---|---|
 | `docs/HOW-THE-EXPLAINERS-ARE-MADE.md` | The whole method: nine stages with commands, the narration and timing rules, the visual rules, the verify gate, thumbnails, upload, and a symptom/cause/fix table of every mistake that cost time |
 | `docs/HOW-A-PIECE-IS-BUILT.md` | The sequence for one piece: what you supply, what each stage produces, and the two gates that loop back. Mermaid, so it renders on GitHub |
-| `tools/tts.py` | One continuous narration take from a script, with the sentence boundaries measured by snapping word positions to the pauses the speaker actually took |
-| `tools/retime.py` | Correct a take to a target pace and rescale every boundary with it |
-| `tools/verify.py` | Check the finished file: pace, dead air, and whether the lines survived the mix |
-| `templates/composition-generator.py` | A beat-timed composition generator: a dark canvas, drawn-on shapes, an opacity ladder, and the framework contract already satisfied |
-| `STYLE.md` | The writing style for docs, replies and narration scripts: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
-| `AGENTS.md` | Tells coding agents in this repository to follow `STYLE.md` |
+| `tools/tts.py` | One continuous narration take from your script, with the start of every paragraph measured and snapped to the pauses the speaker took. Reads the key from the environment or `./.env` |
+| `tools/retime.py` | Correct a take to a target length, and rescale every boundary with it |
+| `tools/verify.py` | Check the finished file: size, frame rate, loudness, dead air, pace, and whether your phrases survived |
+| `tools/doctor.sh` | What this needs, and what is missing. It installs nothing |
+| `templates/composition-generator.py` | Build the composition: one beat per paragraph, four motifs cycling, beats placed on the measured boundaries |
+| `examples/knowledge-graph-script.txt` | The script of the worked example below |
+| `STYLE.md` | The writing style: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
+| `AGENTS.md` | The job, for any coding agent |
 
 ## Worked example: the knowledge graph piece
 
 Two cuts from one set of beats. The horizontal cut runs 3:08, the vertical cut runs 1:30, and both carry the
-same narration plan.
+same narration plan. `examples/knowledge-graph-script.txt` is the script.
 
 - Horizontal: <https://youtu.be/xZbfV6jDHZ0>
 - Vertical, 9:16: <https://youtu.be/yj1ANPtfq5o>
@@ -41,16 +81,11 @@ What that build measured, stage by stage:
 |---|---|
 | Script | 593 words, one paragraph per beat, ten beats |
 | One continuous take | 185.5 seconds, 192 words a minute, no per-line clips |
-| Boundaries | ten beat starts, snapped to the pauses the voice took |
-| Composition | one generated HTML file per cut: GSAP on a paused timeline, an SVG graph, and the voice as one audio element. 1920x1080, one idea per beat |
-| Renderer | HyperFrames 0.8.117: `npx hyperframes check` first, then `npx hyperframes render`. 5,613 frames at 30 fps, hardware GPU |
+| Boundaries | ten paragraph starts, snapped to the pauses the voice took |
+| Composition | one generated HTML file per cut: GSAP on a paused timeline, drawn-on shapes, the voice as one audio element. 1920x1080, one idea per beat |
+| Renderer | HyperFrames: `check` first, then `render`. 5,613 frames at 30 fps, hardware GPU |
 | Verify, on the file | -15.0 LUFS, and nine sampled frames checked by eye |
 | Deliver | uploaded unlisted, then read back from the API |
-
-That build ran a project-local take tool and a timing filler, not the scripts in `tools/` by name. The steps
-are the same ones this repository describes: one continuous take with boundaries snapped to real pauses, a
-composition driven by those boundaries, and a check on the rendered file (loudness, and sampled frames). The
-scripts here are the reusable form of those steps.
 
 Three lessons from that build became rules:
 
@@ -58,7 +93,7 @@ Three lessons from that build became rules:
    seconds (201 words a minute) and 185.5 seconds (192 words a minute) across three calls. Keep the
    best-paced take instead of accepting the first one.
 2. **Swap captions at one instant.** Two captions with a crossfade in the same slot print through each other
-   and read as garbage. Swap them with a single set, which is what the 3Blue1Brown cuts do anyway.
+   and read as garbage. Swapping at one instant, which is what the 3Blue1Brown cuts do anyway, cannot do that.
 3. **Check what the naive baseline reads.** An early measurement of the same tool reported a 92x token
    saving, by comparing the graph against reading the matched files for every question. That baseline claimed
    more tokens than the whole corpus holds, so it was wrong. The tool's own benchmark gives 5.4x on
@@ -67,33 +102,14 @@ Three lessons from that build became rules:
 
 ## Requirements
 
-- Python 3.10+, `ffmpeg` and `ffprobe`
-- Node 20+ and a headless-browser renderer for the composition. The template targets
-  [HyperFrames](https://hyperframes.heygen.com) (`npx hyperframes`), an HTML/GSAP video renderer; the
-  composition pattern is portable to any renderer that can seek a timeline and capture frames.
-- A TTS provider that returns **one continuous take**. Two are in use here: a cloned presenter voice for that
-  person's own channel, and Gemini TTS (`gemini-2.5-flash-preview-tts`) for a product voice, which is what
-  the knowledge graph cuts used.
-
-## Quick start
-
-```bash
-# 1. a script, one paragraph per beat
-$EDITOR script.txt
-
-# 2. one continuous take, plus measured boundaries
-GEMINI_API_KEY=... python3 tools/tts.py script.txt vo/
-
-# 3. correct the pace if it came in slow or fast
-python3 tools/retime.py vo/ 188
-
-# 4. generate the composition from the boundaries
-python3 templates/composition-generator.py ./my-project
-cd my-project && npm run check && npm run render
-
-# 5. verify the rendered file, not the project
-python3 tools/verify.py out.mp4 194 "the first line" "the last line"
-```
+- Python 3.10 or newer, with `ffmpeg` and `ffprobe` on the path
+- Node 20 or newer. The composition targets [HyperFrames](https://hyperframes.heygen.com) (`npx hyperframes`),
+  an HTML/GSAP video renderer; the pattern is portable to any renderer that can seek a timeline and capture
+  frames
+- A TTS key that returns **one continuous take**. Gemini TTS has a usable free tier and is what the tools
+  default to
+- A font, if you want the type in the reference cuts. The CSS asks for
+  `assets/fonts/IBMPlexMono-Regular.ttf` and falls back to the system monospace without it
 
 ## The two numbers worth knowing before you start
 
@@ -105,8 +121,9 @@ python3 tools/verify.py out.mp4 194 "the first line" "the last line"
 
 ## What this is not
 
-It is not a video editor, a template pack, or a product. There are no assets in here: no music, no fonts, no
-footage, no voice models, and no credentials. Bring your own.
+It is not a video editor, a template pack, or a product. There are no media assets in here: no music, no fonts,
+no footage, no voice models, and no credentials. The single image in the repository is the diagram in `docs/`.
+Bring your own.
 
 ## Writing style
 

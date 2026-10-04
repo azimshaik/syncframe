@@ -2,8 +2,8 @@
 
 The practical process, start to finish: the working method, the commands, and the mistakes that cost time.
 
-Written 2026-10-03, after the product explainers, the knowledge graph pieces, and the 3Blue1Brown-style
-product explainer.
+Written 2026-10-03, from the first explainers and the knowledge graph pieces. The worked example in the README
+is the knowledge graph cut, and its script ships in `examples/`.
 
 ---
 
@@ -210,13 +210,14 @@ Result: 1 minute 13, vector-only, rendered in 2.5 minutes rather than an hour.
 ## Starting a new one
 
 ```bash
-P=~/pieces/<piece-name>                                 # one directory per piece
-npx --yes hyperframes@latest init --name <project>      # scaffold, pins a CLI version
+npx --yes hyperframes@latest init <piece>               # scaffold, pins a CLI version
 # write plan.md first: what misconception it corrects, what the aha is, the beat list
-python3 tools/tts.py script.txt "$P/vo"                 # one continuous take -> vo.wav + timings.json
-python3 templates/composition-generator.py "$P"         # composition from the timings
-cd "$P" && npm run check && npm run render
-# then the verify gate above, then the thumbnail, then the upload and the read-back
+# write <piece>/script.txt: one paragraph per beat
+python3 tools/tts.py <piece>/script.txt <piece>/assets/voice
+python3 templates/composition-generator.py <piece>      # add --vertical for the 9:16 cut
+cd <piece> && npm run check && npm run render
+python3 tools/verify.py <piece>/renders/*.mp4 <word-count>
+# then the thumbnail, then the upload and the read-back
 ```
 
 Project layout:

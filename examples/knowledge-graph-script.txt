@@ -1,0 +1,19 @@
+Your coding agent is reading your codebase the way a person reads an unfamiliar book. Page by page, and you pay for every page. There is a second way, and it treats the codebase as what it actually is: a graph.
+
+Follow one question. What breaks if I change this function? That is a question about structure, not about text. Most agents answer it by reading. First a search finds the name, then the agent opens whole files, one after another, until the answer turns up inside one of them.
+
+Every character of those files goes into the context window and onto your bill. And the problem is what fills that window. Not the answer. The code around the answer. The answer is a few lines, and the rest is everything the agent had to read to find them. Cost climbs with every file, responses slow down, and the model starts losing the thread in its own context. Worse, the file that actually matters may never be opened at all. Reading is a search problem, and search misses things.
+
+Now the other way. A knowledge graph stores relationships, not text. A parser reads the source once and extracts two things. Nodes: every file, class and function. Edges: every import, call and reference. That is the whole idea. Read once, keep what relates to what, and drop the rest.
+
+Making one is smaller than it sounds. The tool in this demo is called graphify. It is an open source project by another team, not mine. One command installs it into your agent, and one command builds the graph. It parses with tree-sitter, which covers more than twenty languages, and for code it needs no API key. After that, the agent queries the graph instead of reading files. Explain a node. Ask what a change affects. Ask for the path between two things. Every answer cites the file and the line it came from.
+
+Here is what that saves, measured by the tool itself. On the requests repository: reading the corpus naively costs about seventy-nine thousand tokens. A graph query averages about fourteen and a half thousand. Five times fewer per query, and between three and nine times depending on the question. One caveat, because it matters: that is one repository, and the ratio grows with the size of the codebase.
+
+Notice what reading never does. The same question asked a hundred times is the same files opened a hundred times, and every agent on the team pays for it again. The graph is built once. Then it answers all of them, and one re-extraction keeps it current after a change.
+
+Why it saves so much comes down to one idea. An agent does not need your code. It needs the part of the graph that answers the question. Three effects follow. Cheaper: fewer tokens for every question. Faster: one query instead of opening files. Sharper: a small relevant context instead of a large diluted one, so the window holds the answer instead of the search.
+
+And the graph is honest about its limits. It will not tell you what the code should do. It tells you what depends on what, which is the half that reading is worst at.
+
+That is the shift. Parse once. Ask the graph. Act on the answer. The tool and the method behind this video are open source, and both links are in the description. If this was useful, subscribe. The next one shows the questions nobody thinks to ask a graph, and why those are the valuable ones.
