@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+renders/
+media/
+*.mp4
+*.wav
+*.mp3
+.env
+HANDOFF.md
