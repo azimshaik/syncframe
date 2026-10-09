@@ -178,6 +178,7 @@ would be read aloud as part of the narration.
 | `examples/knowledge-graph-script.txt` | The script of the worked example below |
 | `STYLE.md` | The writing style: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
 | `AGENTS.md` | The job, for any coding agent |
+| `CONTRIBUTING.md` | How to contribute: setup, the development loop, adding a motif pack or a theme token, and what a pull request needs |
 
 ## Worked example: the knowledge graph piece
 
@@ -242,6 +243,15 @@ no footage, no voice models, and no credentials. The images in `examples/` are o
 
 Docs, commit messages, issue replies and narration scripts follow `STYLE.md`. Short sentences, active voice,
 one term per thing, and the hedges kept.
+
+## Contributing
+
+Contributions are welcome, and the useful ones are small: a fix with the command that reproduces it, a
+motif pack, or a mistake added to the symptom table in `docs/HOW-THE-EXPLAINERS-ARE-MADE.md`.
+
+Start with `CONTRIBUTING.md`. It carries the setup, the development loop, the rule for adding a motif
+pack or a theme token, and what a pull request should include. Two rules apply to every change: run
+`npm run check` before a render, and never commit a key or a voice id.
 
 ## Licence
 
