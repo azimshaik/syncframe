@@ -40,8 +40,11 @@ dead air in a 36 second piece. This was measured, not guessed.
 Two engines, chosen by what the video is for:
 
 - **A cloned presenter voice**, for that person's own channel: ElevenLabs `eleven_v3` with the clone's id in
-  `VOICE_ID` from the environment. Check the monthly character quota **before** planning a re-record; it is
-  40,000 on the entry plan and one explainer uses a few thousand.
+  `EL_VOICE_ID` from the environment. `tools/tts.py --engine elevenlabs` drives it, and it writes the same
+  `timings.json`, so nothing downstream changes. Check the monthly character quota **before** planning a
+  re-record; it is 40,000 on the entry plan and one explainer uses a few thousand. `--check-quota` reads the
+  quota without spending any of it, and `--dry-run` prints exactly what would be sent. An over-quota account
+  answers with **401**, which is the same answer as a bad key.
 - **A product voice**, for product pieces: Gemini TTS `gemini-2.5-flash-preview-tts`, one continuous read.
 
 The direction line matters more than the voice. The "sleepy and uninterested" note came from a direction that

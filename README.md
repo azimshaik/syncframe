@@ -77,6 +77,7 @@ Three variations, when you need them:
 | The pace came out wrong | `python3 tools/retime.py my-piece/assets/voice 180` |
 | You want the 9:16 cut | `python3 templates/composition-generator.py my-piece --vertical` |
 | You want a light background | `python3 templates/composition-generator.py my-piece --theme bright` |
+| You want a voice of your own | `python3 tools/tts.py my-piece/script.txt my-piece/assets/voice --engine elevenlabs` |
 | The take is flat or rushed | roll another take, then regenerate. Pace varies between calls |
 
 ### Motifs
@@ -116,13 +117,59 @@ python3 templates/composition-generator.py my-piece --theme bright
 Use `bright` for documents, slide decks and light pages, where a dark video looks pasted in. The tokens are in
 `THEMES` in the generator, and `STYLE.md` lists them with the reason each accent changes.
 
+## Your own voice
+
+The default engine is Gemini: a stock voice on a free tier. To narrate in a voice of your own,
+including a clone, switch the engine to ElevenLabs. Nothing else in the chain changes. It is still one
+continuous take, the same measured boundaries, the same composition, the same checks.
+
+Three things to bring:
+
+1. An ElevenLabs account and the voice you want to use. A cloned voice is fine when it is your own
+   voice, or when you have the speaker's permission.
+2. The API key, from the ElevenLabs dashboard.
+3. The voice id, which sits next to the voice in the voice library.
+
+Keep the credentials in the environment or in `./.env`, which the repository already ignores:
+
+```bash
+export ELEVENLABS_API_KEY=...      # from elevenlabs.io. Never commit it.
+export EL_VOICE_ID=...             # the id of your voice or clone
+
+python3 tools/tts.py my-piece/script.txt my-piece/assets/voice --engine elevenlabs
+```
+
+Then the chain is unchanged: generate the composition, `npm run check`, `npm run render`.
+
+**Check the quota before you plan a re-record.** One three minute piece is about 3,300 characters, and
+the entry plan allows 40,000 a month. Two commands answer the question, and neither spends anything:
+
+```bash
+python3 tools/tts.py x y --check-quota                                     # tier, used, left
+python3 tools/tts.py my-piece/script.txt out --engine elevenlabs --dry-run # what would be sent
+```
+
+An account over its quota answers with **401**, which is exactly what a bad key answers. So a 401 on a
+key you know is good means the quota is finished, not that the key is wrong.
+
+**Credentials never print and never commit.** The tool reads a key from the environment or from
+`./.env`, prints only the last four characters of it, and passes every error message through a
+redactor, so a failed request cannot leak one. Keep keys out of scripts, compositions and commit
+messages. If a key does reach a commit, treat it as public and rotate it: deleting the commit does not
+remove it from the history.
+
+**Style names are settings here, not spoken words.** The Gemini engine reads the direction out loud,
+so the tool sends it as text. ElevenLabs takes settings instead, so `measured`, `engaged` and `brisk`
+set stability, similarity and style values. A direction written into the text of an ElevenLabs take
+would be read aloud as part of the narration.
+
 ## What is in here
 
 | Path | What it is |
 |---|---|
 | `docs/HOW-THE-EXPLAINERS-ARE-MADE.md` | The whole method: nine stages with commands, the narration and timing rules, the visual rules, the verify gate, thumbnails, upload, and a symptom/cause/fix table of every mistake that cost time |
 | `docs/HOW-A-PIECE-IS-BUILT.md` | The sequence for one piece: what you supply, what each stage produces, and the two gates that loop back. Mermaid, so it renders on GitHub |
-| `tools/tts.py` | One continuous narration take from your script, with the start of every paragraph measured and snapped to the pauses the speaker took. Reads the key from the environment or `./.env` |
+| `tools/tts.py` | One continuous narration take from your script, with the start of every paragraph measured and snapped to the pauses the speaker took. Two engines: Gemini by default, ElevenLabs with `--engine elevenlabs` for a voice of your own. Reads keys from the environment or `./.env`, and masks them in everything it prints |
 | `tools/retime.py` | Correct a take to a target length, and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: size, frame rate, loudness, dead air, pace, and whether your phrases survived |
 | `tools/doctor.sh` | What this needs, and what is missing. It installs nothing |
@@ -170,8 +217,9 @@ Three lessons from that build became rules:
 - Node 20 or newer. The composition targets [HyperFrames](https://hyperframes.heygen.com) (`npx hyperframes`),
   an HTML/GSAP video renderer; the pattern is portable to any renderer that can seek a timeline and capture
   frames
-- A TTS key that returns **one continuous take**. Gemini TTS has a usable free tier and is what the tools
-  default to
+- A TTS key that returns **one continuous take**. Two engines ship: `GEMINI_API_KEY` for the default
+  Gemini voice on a free tier, or `ELEVENLABS_API_KEY` plus `EL_VOICE_ID` for the ElevenLabs engine,
+  which a personal or cloned voice uses. See **Your own voice**
 - A font, if you want the type in the reference cuts. The CSS asks for
   `assets/fonts/IBMPlexMono-Regular.ttf` and falls back to the system monospace without it
 

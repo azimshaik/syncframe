@@ -41,13 +41,26 @@ else
 fi
 if command -v npx >/dev/null 2>&1; then pass "npx"; else fail "npx" "it comes with node"; fi
 
-# the key: the one thing you bring
+# the voice keys: one of the two engines has to be available
 if [ -n "${GEMINI_API_KEY:-}" ]; then
-  pass "GEMINI_API_KEY (in the environment)"
+  pass "GEMINI_API_KEY (environment): the default engine"
 elif [ -f .env ] && grep -q "GEMINI_API_KEY" .env 2>/dev/null; then
-  pass "GEMINI_API_KEY (in ./.env)"
+  pass "GEMINI_API_KEY (./.env): the default engine"
 else
-  fail "GEMINI_API_KEY" "get one at https://aistudio.google.com/apikey then: export GEMINI_API_KEY=..."
+  say "note" "no GEMINI_API_KEY, so the free engine is not available yet"
+fi
+
+if [ -n "${ELEVENLABS_API_KEY:-}" ] && [ -n "${EL_VOICE_ID:-}" ]; then
+  pass "ELEVENLABS_API_KEY and EL_VOICE_ID (environment): your own voice"
+elif [ -f .env ] && grep -q "ELEVENLABS_API_KEY" .env 2>/dev/null && grep -q "EL_VOICE_ID" .env 2>/dev/null; then
+  pass "ELEVENLABS_API_KEY and EL_VOICE_ID (./.env): your own voice"
+else
+  say "note" "no ElevenLabs key and voice id, so a voice of your own is not set up"
+fi
+
+if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${ELEVENLABS_API_KEY:-}" ] \
+   && ! grep -q "GEMINI_API_KEY" .env 2>/dev/null && ! grep -q "ELEVENLABS_API_KEY" .env 2>/dev/null; then
+  fail "a TTS key" "GEMINI_API_KEY from https://aistudio.google.com/apikey, or ELEVENLABS_API_KEY and EL_VOICE_ID from https://elevenlabs.io"
 fi
 
 echo ""
