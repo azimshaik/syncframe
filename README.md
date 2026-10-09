@@ -141,8 +141,9 @@ python3 tools/tts.py my-piece/script.txt my-piece/assets/voice --engine elevenla
 
 Then the chain is unchanged: generate the composition, `npm run check`, `npm run render`.
 
-**Check the quota before you plan a re-record.** One three minute piece is about 3,300 characters, and
-the entry plan allows 40,000 a month. Two commands answer the question, and neither spends anything:
+**Check the quota before you plan a re-record.** One three minute piece is about 3,300 characters. The
+plan decides the monthly allowance, so read yours instead of trusting a figure in a document. Two
+commands answer the question, and neither spends anything:
 
 ```bash
 python3 tools/tts.py x y --check-quota                                     # tier, used, left
