@@ -32,27 +32,29 @@ USAGE = "python3 tools/tts.py <script.txt> <out-dir> [voice] [style] [--engine g
 
 FLAGS = {a for a in sys.argv[1:] if a.startswith("--")}
 # A flag's value is not a positional argument. Without this, `--engine elevenlabs` would hand
-# "elevenlabs" to the script as the voice.
-VALUE_FLAGS = {"--engine"}
-POS, _skip = [], False
+# "elevenlabs" to the script as the voice, and `--style engaged` as the voice too.
+VALUE_FLAGS = {"--engine", "--style", "--voice"}
+NAMED = {}
+POS, _skip, _name = [], False, None
 for _a in sys.argv[1:]:
     if _skip:
+        NAMED[_name] = _a
         _skip = False
         continue
     if _a in VALUE_FLAGS:
-        _skip = True
+        _name, _skip = _a, True
+        continue
+    if _a.startswith("--") and "=" in _a:
+        _k, _v = _a.split("=", 1)
+        if _k in VALUE_FLAGS:
+            NAMED[_k] = _v
         continue
     if _a.startswith("--"):
         continue
     POS.append(_a)
 DRY = "--dry-run" in FLAGS
 CHECK = "--check-quota" in FLAGS
-ENGINE = "gemini"
-for i, a in enumerate(sys.argv):
-    if a == "--engine" and i + 1 < len(sys.argv):
-        ENGINE = sys.argv[i + 1].strip().lower()
-    elif a.startswith("--engine="):
-        ENGINE = a.split("=", 1)[1].strip().lower()
+ENGINE = NAMED.get("--engine", "gemini").strip().lower()
 if ENGINE not in ("gemini", "elevenlabs"):
     sys.exit(f"Unknown engine: {ENGINE}. Use gemini or elevenlabs.")
 
@@ -149,12 +151,12 @@ if not POS or len(POS) < 2:
     sys.exit(USAGE)
 SCRIPT = pathlib.Path(POS[0]).expanduser()
 OUT = pathlib.Path(POS[1]).expanduser()
-STYLE = POS[3] if len(POS) > 3 else "measured"
+STYLE = NAMED.get("--style") or (POS[3] if len(POS) > 3 else "measured")
 if STYLE not in STYLES:
     sys.exit(f"Unknown style: {STYLE}. Use one of: {', '.join(STYLES)}.")
 
 if ENGINE == "gemini":
-    VOICE = POS[2] if len(POS) > 2 else "Charon"
+    VOICE = NAMED.get("--voice") or (POS[2] if len(POS) > 2 else "Charon")
     env = load_env(["GEMINI_API_KEY"])
     KEY = env.get("GEMINI_API_KEY", "")
     SECRETS.append(KEY)
@@ -163,7 +165,7 @@ if ENGINE == "gemini":
 else:
     env = load_env(["ELEVENLABS_API_KEY", "EL_VOICE_ID", "VOICE_ID"])
     KEY = env.get("ELEVENLABS_API_KEY", "")
-    VOICE = POS[2] if len(POS) > 2 else env.get("EL_VOICE_ID") or env.get("VOICE_ID") or ""
+    VOICE = NAMED.get("--voice") or (POS[2] if len(POS) > 2 else env.get("EL_VOICE_ID") or env.get("VOICE_ID") or "")
     SECRETS.append(KEY)
     if not KEY and not DRY:
         fail("No key. Set ELEVENLABS_API_KEY, or put it in ./.env. Run tools/doctor.sh to check.")

@@ -17,11 +17,26 @@ what it needs or falls back to `basic`:
   bars      two or three bars, sized from the numbers in the paragraph
   steps     the paragraph's sentences as a numbered list, revealed one at a time
 
+Motion packs, where the movement carries the idea rather than the shape:
+
+  orbit     shells of satellites travelling around a centre, one of them highlighted
+  race      two pulses running the same distance, one finishing far sooner
+  hop       a pulse travelling node to node along a chain, links lighting as it passes
+  grid      an antenna array rippling, with the beam angle tilting as the ripple passes
+
 Default: basic. Example: --motifs graph,steps,bars,basic
 
 Theme (see --theme). `dark` is the default reference look. `bright` puts the same layout on
 paper: dark ink and deeper accents, so nothing gets lost on a white background. Use it for
 documents, slide decks and light-themed sites. Example: --theme bright
+
+Per-beat motifs (see --beats). `--motifs` cycles its packs across the beats. When a beat needs a
+specific motif, name them in order instead:
+
+  --beats orbit,race,orbit,grid,hop,hop,hop,grid,bars,steps,orbit
+
+Beats past the end of the list fall back to `--motifs`. This is how a piece whose beats each have
+their own idea stays readable, instead of one motif repeating on a cycle.
 
 The font is optional. With assets/fonts/IBMPlexMono-Regular.ttf you get the reference
 look; without it the composition asks for generic monospace and requests nothing.
@@ -36,11 +51,11 @@ import json, math, pathlib, re, sys
 THEMES = {
     "dark":   {"bg": "#1C1C1C", "ink": "#ECECEC", "dim": "#888888", "grid": "#ECECEC",
                "grid_opacity": ".05", "blue": "#58C4DD", "green": "#83C167",
-               "yellow": "#FFFF00", "muted": "#3C3C3C", "panel_bg": "#151515",
+               "yellow": "#FFFF00", "muted": "#3C3C3C", "rule": "#2E2E2E", "panel_bg": "#151515",
                "panel_bd": "#333333"},
     "bright": {"bg": "#FAFAF7", "ink": "#16181D", "dim": "#5C5C5C", "grid": "#16181D",
                "grid_opacity": ".06", "blue": "#1E7FA6", "green": "#2F7D32",
-               "yellow": "#A97B00", "muted": "#BDBDB4", "panel_bg": "#EFEFEA",
+               "yellow": "#A97B00", "muted": "#BDBDB4", "rule": "#E2E2DC", "panel_bg": "#EFEFEA",
                "panel_bd": "#C9C9C2"},
 }
 
@@ -55,10 +70,23 @@ for a in argv:
         MOTIFS = a.split("=", 1)[1] if "=" in a else ""
         if not MOTIFS and "--motifs" in argv:
             MOTIFS = argv[argv.index("--motifs") + 1] if argv.index("--motifs") + 1 < len(argv) else "basic"
+MOTION_PACKS = ("orbit", "race", "hop", "grid", "scale")
+ALL_PACKS = ("basic", "graph", "bars", "steps") + MOTION_PACKS
 PACKS = [m.strip().lower() for m in MOTIFS.split(",") if m.strip()] or ["basic"]
-UNKNOWN = [m for m in PACKS if m not in ("basic", "graph", "bars", "steps")]
+UNKNOWN = [m for m in PACKS if m not in ALL_PACKS]
 if UNKNOWN:
-    sys.exit(f"Unknown motif pack(s): {', '.join(UNKNOWN)}. Use basic, graph, bars or steps.")
+    sys.exit(f"Unknown motif pack(s): {', '.join(UNKNOWN)}. Use {', '.join(ALL_PACKS)}.")
+
+# --beats assigns a pack to one beat, in order. Beats past the end fall back to --motifs.
+BEATS = []
+for _i, _a in enumerate(argv):
+    if _a == "--beats" and _i + 1 < len(argv):
+        BEATS = [m.strip().lower() for m in argv[_i + 1].split(",") if m.strip()]
+    elif _a.startswith("--beats="):
+        BEATS = [m.strip().lower() for m in _a.split("=", 1)[1].split(",") if m.strip()]
+_BAD = [m for m in BEATS if m not in ALL_PACKS]
+if _BAD:
+    sys.exit(f"Unknown pack in --beats: {', '.join(_BAD)}. Use {', '.join(ALL_PACKS)}.")
 
 THEME = "dark"
 for _i, _a in enumerate(argv):
@@ -151,14 +179,22 @@ def caption_text(text):
 
 
 def clip_words(text, limit):
-    """Cut on a word boundary, and say that you cut."""
+    """Cut on a clause boundary where one exists, otherwise on a word, and say that you cut.
+
+    A row that stops mid-clause reads as unfinished; stopping after a comma reads as a summary.
+    """
     if len(text) <= limit:
         return text
-    return text[:limit].rsplit(" ", 1)[0] + "\u2026"
+    head = text[:limit]
+    for sep in (", ", "; ", ": "):
+        i = head.rfind(sep)
+        if i >= int(limit * 0.55):
+            return head[:i + 1]
+    return head.rsplit(" ", 1)[0] + "\u2026"
 
 CSS = """
       :root { --bg:__BG__; --blue:__BLUE__; --green:__GREEN__; --yellow:__YELLOW__;
-              --dim:__DIM__; --ink:__INK__; --muted:__MUTED__; }
+              --dim:__DIM__; --ink:__INK__; --muted:__MUTED__; --rule:__RULE__; }
       html, body { margin:0; padding:0; background:var(--bg); }
       .stage { position:relative; width:__W__px; height:__H__px; background:var(--bg); overflow:hidden; }
       .grid { position:absolute; inset:0; opacity:__GRID_OPACITY__;
@@ -330,8 +366,14 @@ def pack_bars(i, text):
 def pack_steps(i, text):
     """The paragraph's sentences, as a numbered list revealed one at a time."""
     pitch = 86 if not VERTICAL else 116
+    # The row width is what the frame can hold: a landscape row has 1240px for 38px type, a
+    # vertical row has about 860px, so the vertical cut takes fewer characters per row.
+    row_chars = 52 if not VERTICAL else 38
     rows_max = max(2, min(5, (2 * RMAX_Y) // pitch + 1))
-    parts = sentences_in(text, rows_max)
+    # The caption is the paragraph's first sentence, so the list starts at the second one: a row
+    # that repeats the caption wastes the frame.
+    all_parts = sentences_in(text, rows_max + 1)
+    parts = all_parts[1:] if len(all_parts) >= 2 else all_parts
     if len(parts) < 2:
         return None
     pre = f"b{i}"
@@ -340,19 +382,211 @@ def pack_steps(i, text):
     rows, js = [], []
     for j, part in enumerate(parts):
         rows.append(f'<div class="row" id="{pre}r{j+1}" style="left:{x0}px; top:{y0 + j * pitch}px; '
-                    f'opacity:0"><span class="n">{j + 1}</span>&nbsp;&nbsp;{clip_words(part, 40)}</div>')
+                    f'opacity:0"><span class="n">{j + 1}</span>&nbsp;&nbsp;{clip_words(part, row_chars)}</div>')
         js.append((f"#{pre}r{j+1}", "fade", 0.35 + j * 0.5, 0.45))
     return "".join(rows), "", js
 
 
-PACK_FN = {"basic": pack_basic, "graph": pack_graph, "bars": pack_bars, "steps": pack_steps}
+def pack_orbit(i, text):
+    """Shells of satellites travelling around a centre. The movement is the subject.
+
+    Each shell is a group that turns once over the beat, so the constellation reads as a system in
+    motion rather than a diagram. One satellite is drawn in green: this beat's subject.
+    """
+    pre = f"b{i}"
+    shells = 3 if not VERTICAL else 2
+    cy = CY - 30
+    out = [svg_open()]
+    js = []
+    for s in range(shells):
+        r = int((RMAX_X - 110) * (0.52 + 0.23 * s)) if not VERTICAL else int((RMAX_X - 80) * (0.48 + 0.25 * s))
+        # The ring is an ellipse drawn by squashing the whole group, and the satellites are spun
+        # inside it. Rotating an elliptical ARRANGEMENT would walk the satellites off the ring,
+        # which is what the first build did; rotating inside a squashed group cannot.
+        squash = 0.42 if not VERTICAL else 0.48
+        out.append(f'<g transform="translate({CX} {cy}) scale(1 {squash})">'
+                   f'<ellipse class="stroke" id="{pre}sh{s}" stroke="{C["muted"]}" cx="0" cy="0" '
+                   f'rx="{r}" ry="{r}"/></g>')
+        n = 4 + s * 2
+        hero = (s == shells - 1)
+        pts = "".join(
+            f'<circle class="dot" id="{pre}s{s}_{j}" stroke="{C["green"] if (hero and j == 0) else C["blue"]}" '
+            f'cx="{r * math.cos(2 * math.pi * j / n - 1.57):.1f}" '
+            f'cy="{r * math.sin(2 * math.pi * j / n - 1.57):.1f}" '
+            f'r="{20 if (hero and j == 0) else 11}"/>' for j in range(n))
+        out.append(f'<g transform="translate({CX} {cy}) scale(1 {squash})">'
+                   f'<g id="{pre}g{s}">{pts}</g></g>')
+        js.append((f"#{pre}sh{s}", "fade", 0.15 + s * 0.12, 0.5))
+        js.append({"sel": f"#{pre}g{s}", "kind": "spin", "delay": 0.15, "dur": 20 if not VERTICAL else 26,
+                   "from": 0, "to": 360, "origin": "0px 0px"})
+    out.append("</svg>")
+    return "", "".join(out), js
+
+
+def pack_race(i, text):
+    """Two pulses over the same distance: the short path arrives while the long one is still going.
+
+    Time is the subject, so the pack draws no figures of its own. The caption carries the numbers.
+    """
+    pre = f"b{i}"
+    span = int(RMAX_X * 1.75) if not VERTICAL else int(RMAX_X * 1.5)
+    x0 = CX - span // 2
+    y_far = CY - 96 if not VERTICAL else CY - 130
+    y_near = CY + 60 if not VERTICAL else CY + 110
+    out = [svg_open()]
+    lanes = [("long path", y_far, 8.4, C["blue"]), ("short path", y_near, 1.5, C["green"])]
+    for k, (label, y, dur, colour) in enumerate(lanes):
+        # The trail is deliberately dim and the pulse bright: same colour for both made the moving
+        # dot invisible against its own trail, which is the whole point of the beat.
+        out.append(f'<line class="stroke" id="{pre}tr{k}" stroke="{C["rule"]}" x1="{x0}" y1="{y}" '
+                   f'x2="{x0 + span}" y2="{y}" style="opacity:0; transform-origin:{x0}px {y}px"/>')
+        out.append(f'<circle class="dot" id="{pre}p{k}" stroke="{colour}" cx="{x0}" cy="{y}" r="22"/>')
+    out.append("</svg>")
+    # labels are plain divs, above the lanes, so they stay in the frame
+    extra = "".join(
+        f'<div class="nlabel" id="{pre}t{k}" style="left:{x0}px; top:{y - 56}px; opacity:0">{label}</div>'
+        for k, (label, y, _, _) in enumerate(lanes))
+    js = [(f"#{pre}lane0", "fade", 0.15, 0.4), (f"#{pre}lane1", "fade", 0.15, 0.4),
+          (f"#{pre}fin0", "fade", 0.3, 0.4), (f"#{pre}fin1", "fade", 0.3, 0.4),
+          (f"#{pre}t0", "fade", 0.3, 0.4), (f"#{pre}t1", "fade", 0.3, 0.4)]
+    for k, (label, y, dur, colour) in enumerate(lanes):
+        js.append({"sel": f"#{pre}tr{k}", "kind": "grow", "delay": 0.6, "dur": dur,
+                   "to": {"scaleX": 1}})
+        js.append({"sel": f"#{pre}p{k}", "kind": "move", "delay": 0.6, "dur": dur,
+                   "from": {"x": 0}, "to": {"x": span}, "ease": "none"})
+    return extra, "".join(out), js
+
+
+def pack_hop(i, text):
+    """A pulse travelling node to node, with each link lighting as it passes.
+
+    The chain length follows the beat's position, so the same pack reads as a two satellite
+    handover, a three leg path there and back, or a long chain across an ocean.
+    """
+    pre = f"b{i}"
+    k = 2 if i <= 4 else (3 if i == 5 else 7)
+    span = int(RMAX_X * 1.7) if not VERTICAL else int(RMAX_X * 1.45)
+    x0 = CX - span // 2
+    xs = [x0 + (span * j // (k - 1)) for j in range(k)]
+    if k == 3:  # there and back: rises, crosses, drops to the ground
+        ys = [CY + 150, CY - 150, CY + 150]
+    else:
+        ys = [CY - (40 if j % 2 else 0) for j in range(k)]
+    out = [svg_open()]
+    js = []
+    for j in range(k - 1):
+        out.append(f'<line class="stroke" id="{pre}l{j}" stroke="{C["rule"]}" x1="{xs[j]}" y1="{ys[j]}" '
+                   f'x2="{xs[j + 1]}" y2="{ys[j + 1]}"/>')
+        out.append(f'<line class="stroke" id="{pre}lv{j}" stroke="{C["blue"]}" x1="{xs[j]}" y1="{ys[j]}" '
+                   f'x2="{xs[j + 1]}" y2="{ys[j + 1]}" style="opacity:0"/>')
+    for j in range(k):
+        out.append(f'<circle class="dot" id="{pre}n{j}" stroke="{C["blue"] if j < k - 1 else C["green"]}" '
+                   f'cx="{xs[j]}" cy="{ys[j]}" r="26"/>')
+    out.append(f'<circle class="dot" id="{pre}pulse" stroke="{C["yellow"]}" cx="{xs[0]}" cy="{ys[0]}" r="11"/>')
+    out.append("</svg>")
+    for j in range(k - 1):
+        js.append((f"#{pre}l{j}", "dash", 0.2 + j * 0.05, 0.3))
+    hop = 0.55 if k > 3 else 0.9
+    for j in range(k - 1):
+        step = {"x": xs[j + 1] - xs[j], "y": ys[j + 1] - ys[j]}
+        if j == 0:
+            js.append({"sel": f"#{pre}pulse", "kind": "move", "delay": 0.7, "dur": hop,
+                       "from": {"x": 0, "y": 0, "opacity": 0}, "to": {**step, "opacity": 1},
+                       "ease": "power1.inOut"})
+        else:
+            js.append({"sel": f"#{pre}pulse", "kind": "moveby", "delay": 0.7 + j * hop, "dur": hop,
+                       "to": step, "ease": "power1.inOut"})
+        js.append({"sel": f"#{pre}lv{j}", "kind": "fade", "delay": 0.7 + j * hop, "dur": hop * 0.8})
+    return "", "".join(out), js
+
+
+def pack_grid(i, text):
+    """An antenna array rippling, with the beam angle tilting as the ripple passes.
+
+    A grid of small elements is what a phased array actually is, and the ripple is what steering
+    looks like: nothing moves, the timing changes.
+    """
+    pre = f"b{i}"
+    cols, rows = (10, 6) if not VERTICAL else (8, 8)
+    cw = 46 if not VERTICAL else 40
+    gap = 10
+    gw, gh = cols * cw + (cols - 1) * gap, rows * cw + (rows - 1) * gap
+    gx, gy = CX - gw // 2, CY - gh // 2 - (30 if not VERTICAL else 40)
+    out = [svg_open()]
+    js = []
+    cells = []
+    for r_ in range(rows):
+        for c_ in range(cols):
+            x = gx + c_ * (cw + gap)
+            y = gy + r_ * (cw + gap)
+            cid = f"{pre}c{r_}_{c_}"
+            cells.append((cid, (c_ + r_) / (cols + rows - 2)))
+            out.append(f'<rect class="dot" id="{cid}" stroke="{C["blue"]}" x="{x}" y="{y}" '
+                       f'width="{cw}" height="{cw}" rx="4" style="opacity:.35"/>')
+    # the beam: two lines from the array centre, tilting as the ripple passes
+    out.append(f'<g id="{pre}beam">'
+               f'<line class="stroke" id="{pre}b1" stroke="{C["green"]}" x1="{CX}" y1="{gy + gh}" '
+               f'x2="{CX - 120}" y2="{gy + gh + 190}"/>'
+               f'<line class="stroke" id="{pre}b2" stroke="{C["green"]}" x1="{CX}" y1="{gy + gh}" '
+               f'x2="{CX + 120}" y2="{gy + gh + 190}"/></g>')
+    out.append("</svg>")
+    for cid, t in cells:
+        js.append({"sel": f"#{cid}", "kind": "pop", "delay": 0.25 + round(t * 2.2, 2), "dur": 0.7, "scale": 1.55})
+    js.append((f"#{pre}beam", "fade", 1.6, 0.5))
+    js.append({"sel": f"#{pre}beam", "kind": "rotate", "delay": 2.2, "dur": 3.0, "to": 18,
+               "origin": f"{CX}px {gy + gh}px"})
+    return "", "".join(out), js
+
+def pack_scale(i, text):
+    """Two magnitudes on one axis, drawn to scale, so the long one visibly dwarfs the short one.
+
+    Reads the numbers out of the paragraph. Used where the argument is a comparison of sizes and a
+    bar chart of every number in the sentence would be noise.
+    """
+    nums = numbers_in(text, 6)
+    values = sorted({n["value"] for n in nums if n["value"] > 0})
+    if len(values) < 2:
+        return None
+    lo, hi = values[0], values[-1]
+    if hi == lo:
+        return None
+    unit = "ms" if "millisecond" in text.lower() else ("%" if "percent" in text.lower() else "")
+    pre = f"b{i}"
+    span = int(RMAX_X * 1.7) if not VERTICAL else int(RMAX_X * 1.4)
+    x0 = CX - span // 2
+    y_hi = CY - 70 if not VERTICAL else CY - 90
+    y_lo = CY + 50 if not VERTICAL else CY + 80
+    w_lo = max(16, int(span * lo / hi))
+    def lbl(v):
+        return f"{v:,.0f} {unit}".strip()
+    out = [svg_open(),
+           f'<line class="stroke" id="{pre}axis" stroke="{C["rule"]}" x1="{x0}" y1="{y_hi - 60}" '
+           f'x2="{x0}" y2="{y_lo + 60}"/>',
+           f'<line class="stroke" id="{pre}bhi" stroke="{C["blue"]}" x1="{x0}" y1="{y_hi}" '
+           f'x2="{x0 + span}" y2="{y_hi}" style="opacity:0; transform-origin:{x0}px {y_hi}px"/>',
+           f'<line class="stroke" id="{pre}blo" stroke="{C["green"]}" x1="{x0}" y1="{y_lo}" '
+           f'x2="{x0 + w_lo}" y2="{y_lo}" style="opacity:0; transform-origin:{x0}px {y_lo}px"/>',
+           "</svg>"]
+    extra = (f'<div class="barlabel" id="{pre}thi" style="left:{x0 + 24}px; top:{y_hi - 58}px; opacity:0">{lbl(hi)}</div>'
+             f'<div class="barlabel" id="{pre}tlo" style="left:{x0 + w_lo + 24}px; top:{y_lo - 58}px; opacity:0">{lbl(lo)}</div>')
+    js = [(f"#{pre}axis", "fade", 0.2, 0.4),
+          {"sel": f"#{pre}bhi", "kind": "grow", "delay": 0.5, "dur": 0.9},
+          (f"#{pre}thi", "fade", 0.9, 0.4),
+          {"sel": f"#{pre}blo", "kind": "grow", "delay": 1.6, "dur": 0.5},
+          (f"#{pre}tlo", "fade", 1.9, 0.4)]
+    return extra, "".join(out), js
+
+
+PACK_FN = {"basic": pack_basic, "graph": pack_graph, "bars": pack_bars, "steps": pack_steps,
+           "orbit": pack_orbit, "race": pack_race, "hop": pack_hop, "grid": pack_grid,
+           "scale": pack_scale}
 
 beats_html, beats_js, chosen = [], [], []
 for i in range(N):
     start = STARTS[i]
     end = STARTS[i + 1] if i + 1 < N else END
     dur = round(end - start, 2)
-    wanted = PACKS[i % len(PACKS)]
+    wanted = BEATS[i] if i < len(BEATS) else PACKS[i % len(PACKS)]
     if wanted == "basic":
         extra, svg, js = pack_basic(i, TEXT[i])
         used = "basic"
@@ -375,7 +609,45 @@ for i in range(N):
     <div class="counter" id="b{i}num" style="opacity:0">{i + 1} / {N}</div>
   </div>""")
     beats_js.append(f"    tl.fromTo('#beat-b{i}', {{ opacity: 0 }}, {{ opacity: 1, duration: .4 }}, {start:.2f});")
-    for sel, kind, delay, d in js:
+    for entry in js:
+        if isinstance(entry, dict):
+            sel = entry["sel"]
+            at = round(start + entry["delay"], 2)
+            d = entry.get("dur", 0.5)
+            kind = entry["kind"]
+            if kind == "spin":
+                beats_js.append(f"    tl.fromTo('{sel}', {{ rotation: {entry['from']}, "
+                                f"transformOrigin: '{entry['origin']}', immediateRender: false }}, "
+                                f"{{ rotation: {entry['to']}, duration: {d}, ease: 'none' }}, {at});")
+            elif kind == "move":
+                frm = ", ".join(f"{k}: {v}" for k, v in entry["from"].items())
+                to = ", ".join(f"{k}: {v}" for k, v in entry["to"].items())
+                beats_js.append(f"    tl.fromTo('{sel}', {{ {frm}, immediateRender: false }}, "
+                                f"{{ {to}, duration: {d}, ease: '{entry.get('ease', 'power1.out')}' }}, {at});")
+            elif kind == "moveby":
+                # a relative move keeps the element's authored position as its baseline, which a
+                # second fromTo would otherwise overwrite for any seek before the tween runs
+                bits = ", ".join(f'{k}: "+={v}"' for k, v in entry["to"].items() if v)
+                beats_js.append(f"    tl.to('{sel}', {{ {bits}, duration: {d}, "
+                                f"ease: '{entry.get('ease', 'power1.inOut')}' }}, {at});")
+            elif kind == "grow":
+                beats_js.append(f"    tl.fromTo('{sel}', {{ scaleX: 0, opacity: 0, "
+                                f"transformOrigin: '0% 50%', immediateRender: false }}, "
+                                f"{{ scaleX: 1, opacity: 1, duration: {d}, ease: 'none' }}, {at});")
+            elif kind == "rotate":
+                beats_js.append(f"    tl.to('{sel}', {{ rotation: {entry['to']}, "
+                                f"transformOrigin: '{entry['origin']}', duration: {d}, "
+                                f"ease: '{entry.get('ease', 'power1.inOut')}' }}, {at});")
+            elif kind == "pop":
+                s = entry.get("scale", 1.6)
+                beats_js.append(f"    tl.fromTo('{sel}', {{ scale: 1, transformOrigin: '50% 50%', "
+                                f"immediateRender: false }}, "
+                                f"{{ scale: {s}, duration: {round(d / 2, 2)}, yoyo: true, repeat: 1, "
+                                f"ease: 'power1.inOut' }}, {at});")
+            else:
+                beats_js.append(f"    tl.fromTo('{sel}', {{ opacity: 0 }}, {{ opacity: 1, duration: {d} }}, {at});")
+            continue
+        sel, kind, delay, d = entry
         at = round(start + delay, 2)
         if kind == "dash":
             beats_js.append(f"    tl.fromTo('{sel}', {{ strokeDashoffset: window.__len('{sel}') }}, "
