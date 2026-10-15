@@ -258,7 +258,7 @@ def svg_open():
 
 
 # ---------- motif packs: each returns (extra_html, svg, js) ----------
-def pack_basic(i, text):
+def pack_basic(i, text, dur=0.0):
     k = i % 4
     pre = f"b{i}"
     if k == 0:
@@ -301,7 +301,7 @@ def pack_basic(i, text):
     return "", svg, js
 
 
-def pack_graph(i, text):
+def pack_graph(i, text, dur=0.0):
     """One node per paragraph, sequential edges, this beat's node resolved in green."""
     if N < 3:
         return None
@@ -336,7 +336,7 @@ def pack_graph(i, text):
     return labels, svg_open() + lines + dots + '</svg>', js
 
 
-def pack_bars(i, text):
+def pack_bars(i, text, dur=0.0):
     """Two or three bars sized from the numbers in the paragraph."""
     nums = numbers_in(text)
     if len(nums) < 2:
@@ -363,7 +363,7 @@ def pack_bars(i, text):
     return "".join(bars + labels), "", js
 
 
-def pack_steps(i, text):
+def pack_steps(i, text, dur=0.0):
     """The paragraph's sentences, as a numbered list revealed one at a time."""
     pitch = 86 if not VERTICAL else 116
     # The row width is what the frame can hold: a landscape row has 1240px for 38px type, a
@@ -387,7 +387,7 @@ def pack_steps(i, text):
     return "".join(rows), "", js
 
 
-def pack_orbit(i, text):
+def pack_orbit(i, text, dur=0.0):
     """Shells of satellites travelling around a centre. The movement is the subject.
 
     Each shell is a group that turns once over the beat, so the constellation reads as a system in
@@ -399,7 +399,9 @@ def pack_orbit(i, text):
     out = [svg_open()]
     js = []
     for s in range(shells):
-        r = int((RMAX_X - 110) * (0.52 + 0.23 * s)) if not VERTICAL else int((RMAX_X - 80) * (0.48 + 0.25 * s))
+        # The outer shell is capped: its satellite bounding box, not the ring, sets the reach,
+        # and an uncapped radius walks that box past the left edge of the frame.
+        r = min(int((RMAX_X - 110) * (0.46 + 0.20 * s)), 340) if not VERTICAL else min(int((RMAX_X - 80) * (0.44 + 0.22 * s)), 320)
         # The ring is an ellipse drawn by squashing the whole group, and the satellites are spun
         # inside it. Rotating an elliptical ARRANGEMENT would walk the satellites off the ring,
         # which is what the first build did; rotating inside a squashed group cannot.
@@ -417,13 +419,16 @@ def pack_orbit(i, text):
         out.append(f'<g transform="translate({CX} {cy}) scale(1 {squash})">'
                    f'<g id="{pre}g{s}">{pts}</g></g>')
         js.append((f"#{pre}sh{s}", "fade", 0.15 + s * 0.12, 0.5))
-        js.append({"sel": f"#{pre}g{s}", "kind": "spin", "delay": 0.15, "dur": 20 if not VERTICAL else 26,
+        # One revolution over the beat: a fixed 20s spin stretched the timeline past the audio
+        # and left a dead tail on short beats.
+        spin_dur = dur if dur > 0 else (20 if not VERTICAL else 26)
+        js.append({"sel": f"#{pre}g{s}", "kind": "spin", "delay": 0.15, "dur": spin_dur,
                    "from": 0, "to": 360, "origin": "0px 0px"})
     out.append("</svg>")
     return "", "".join(out), js
 
 
-def pack_race(i, text):
+def pack_race(i, text, dur=0.0):
     """Two pulses over the same distance: the short path arrives while the long one is still going.
 
     Time is the subject, so the pack draws no figures of its own. The caption carries the numbers.
@@ -434,7 +439,10 @@ def pack_race(i, text):
     y_far = CY - 96 if not VERTICAL else CY - 130
     y_near = CY + 60 if not VERTICAL else CY + 110
     out = [svg_open()]
-    lanes = [("long path", y_far, 8.4, C["blue"]), ("short path", y_near, 1.5, C["green"])]
+    # The lanes are scaled to the beat so the short path lands while the long one is still going,
+    # without a fixed 8.4s run that would outlast a short beat.
+    long_dur = dur * 0.72 if dur > 0 else 8.4
+    lanes = [("long path", y_far, long_dur, C["blue"]), ("short path", y_near, long_dur / 5.6, C["green"])]
     for k, (label, y, dur, colour) in enumerate(lanes):
         # The trail is deliberately dim and the pulse bright: same colour for both made the moving
         # dot invisible against its own trail, which is the whole point of the beat.
@@ -446,9 +454,7 @@ def pack_race(i, text):
     extra = "".join(
         f'<div class="nlabel" id="{pre}t{k}" style="left:{x0}px; top:{y - 56}px; opacity:0">{label}</div>'
         for k, (label, y, _, _) in enumerate(lanes))
-    js = [(f"#{pre}lane0", "fade", 0.15, 0.4), (f"#{pre}lane1", "fade", 0.15, 0.4),
-          (f"#{pre}fin0", "fade", 0.3, 0.4), (f"#{pre}fin1", "fade", 0.3, 0.4),
-          (f"#{pre}t0", "fade", 0.3, 0.4), (f"#{pre}t1", "fade", 0.3, 0.4)]
+    js = [(f"#{pre}t0", "fade", 0.3, 0.4), (f"#{pre}t1", "fade", 0.3, 0.4)]
     for k, (label, y, dur, colour) in enumerate(lanes):
         js.append({"sel": f"#{pre}tr{k}", "kind": "grow", "delay": 0.6, "dur": dur,
                    "to": {"scaleX": 1}})
@@ -457,7 +463,7 @@ def pack_race(i, text):
     return extra, "".join(out), js
 
 
-def pack_hop(i, text):
+def pack_hop(i, text, dur=0.0):
     """A pulse travelling node to node, with each link lighting as it passes.
 
     The chain length follows the beat's position, so the same pack reads as a two satellite
@@ -500,7 +506,7 @@ def pack_hop(i, text):
     return "", "".join(out), js
 
 
-def pack_grid(i, text):
+def pack_grid(i, text, dur=0.0):
     """An antenna array rippling, with the beam angle tilting as the ripple passes.
 
     A grid of small elements is what a phased array actually is, and the ripple is what steering
@@ -533,11 +539,14 @@ def pack_grid(i, text):
     for cid, t in cells:
         js.append({"sel": f"#{cid}", "kind": "pop", "delay": 0.25 + round(t * 2.2, 2), "dur": 0.7, "scale": 1.55})
     js.append((f"#{pre}beam", "fade", 1.6, 0.5))
-    js.append({"sel": f"#{pre}beam", "kind": "rotate", "delay": 2.2, "dur": 3.0, "to": 18,
+    # The tilt ends with the beat: a fixed 3.0s run would outlast a short beat.
+    rot_delay = min(2.2, max(0.6, dur - 1.0)) if dur > 0 else 2.2
+    rot_dur = max(0.8, dur - rot_delay - 0.1) if dur > 0 else 3.0
+    js.append({"sel": f"#{pre}beam", "kind": "rotate", "delay": rot_delay, "dur": rot_dur, "to": 18,
                "origin": f"{CX}px {gy + gh}px"})
     return "", "".join(out), js
 
-def pack_scale(i, text):
+def pack_scale(i, text, dur=0.0):
     """Two magnitudes on one axis, drawn to scale, so the long one visibly dwarfs the short one.
 
     Reads the numbers out of the paragraph. Used where the argument is a comparison of sizes and a
@@ -552,7 +561,9 @@ def pack_scale(i, text):
         return None
     unit = "ms" if "millisecond" in text.lower() else ("%" if "percent" in text.lower() else "")
     pre = f"b{i}"
-    span = int(RMAX_X * 1.7) if not VERTICAL else int(RMAX_X * 1.4)
+    # The span is capped to the usable width: the low bar's label sits at x0 + 24, so an uncapped
+    # span walks the label past the left edge of the frame.
+    span = min(int(RMAX_X * 1.7), 1760) if not VERTICAL else min(int(RMAX_X * 1.4), 920)
     x0 = CX - span // 2
     y_hi = CY - 70 if not VERTICAL else CY - 90
     y_lo = CY + 50 if not VERTICAL else CY + 80
@@ -591,7 +602,7 @@ for i in range(N):
         extra, svg, js = pack_basic(i, TEXT[i])
         used = "basic"
     else:
-        got = PACK_FN[wanted](i, TEXT[i])
+        got = PACK_FN[wanted](i, TEXT[i], dur)
         if got is None:
             extra, svg, js = pack_basic(i, TEXT[i])
             used = "basic (fell back: this paragraph has nothing for " + wanted + ")"
