@@ -84,15 +84,29 @@ ELEVEN_VOICE_SETTINGS = {
 
 
 def load_env(names):
-    """Read the named keys from the environment, then from ./.env. Values are never printed."""
+    """Read the named keys from the environment, then from ./.env or parent directories. Values are never printed."""
     out = {}
-    dotenv = pathlib.Path(".env")
     pairs = {}
-    if dotenv.exists():
-        for line in dotenv.read_text(errors="ignore").splitlines():
-            m = re.match(r"\s*([A-Za-z0-9_]+)\s*=\s*(.*)", line)
-            if m:
-                pairs[m.group(1)] = m.group(2).strip().strip('"').strip("'")
+    candidates = []
+    p = pathlib.Path.cwd()
+    for _ in range(5):
+        candidates.append(p / ".env")
+        if p.parent == p:
+            break
+        p = p.parent
+    candidates.append(pathlib.Path("~/.env").expanduser())
+    candidates.append(pathlib.Path("~/.config/syncframe/.env").expanduser())
+
+    seen = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if candidate.exists() and candidate.is_file():
+            for line in candidate.read_text(errors="ignore").splitlines():
+                m = re.match(r"\s*([A-Za-z0-9_]+)\s*=\s*(.*)", line)
+                if m and m.group(1) not in pairs:
+                    pairs[m.group(1)] = m.group(2).strip().strip('"').strip("'")
     for n in names:
         v = os.environ.get(n) or pairs.get(n, "")
         if v:
@@ -157,8 +171,8 @@ if STYLE not in STYLES:
 
 if ENGINE == "gemini":
     VOICE = NAMED.get("--voice") or (POS[2] if len(POS) > 2 else "Charon")
-    env = load_env(["GEMINI_API_KEY"])
-    KEY = env.get("GEMINI_API_KEY", "")
+    env = load_env(["GEMINI_API_KEY", "GOOGLE_API_KEY"])
+    KEY = env.get("GEMINI_API_KEY") or env.get("GOOGLE_API_KEY") or ""
     SECRETS.append(KEY)
     if not KEY and not DRY:
         fail("No key. Set GEMINI_API_KEY, or put it in ./.env. Run tools/doctor.sh to check.")
