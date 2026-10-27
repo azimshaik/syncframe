@@ -73,7 +73,7 @@ text and to the beats that carry it:
 
 | Ingredient | Rule |
 |---|---|
-| captions | one key line per beat, never full subtitles |
+| captions | one key line per beat, centered near the bottom of the frame, never full subtitles |
 | caption swaps | swap at one instant. Never crossfade two captions in the same slot |
 | sentence length | short enough to draw, and short enough to read in one look |
 | pacing | long beats, deliberate holds, no music |

@@ -213,14 +213,19 @@ Result: 1 minute 13, vector-only, rendered in 2.5 minutes rather than an hour.
 
 ## Starting a new one
 
+Use `python3` on macOS and Linux, or `py -3` in Windows PowerShell. Use your shell's syntax to set keys and
+change directories.
+
 ```bash
 npx --yes hyperframes@latest init <piece>               # scaffold, pins a CLI version
 # write plan.md first: what misconception it corrects, what the aha is, the beat list
 # write <piece>/script.txt: one paragraph per beat
 python3 tools/tts.py <piece>/script.txt <piece>/assets/voice
 python3 templates/composition-generator.py <piece>      # add --vertical for the 9:16 cut
-cd <piece> && npm run check && npm run render
-python3 tools/verify.py <piece>/renders/*.mp4 <word-count>
+cd <piece>
+npm run check
+npm run render
+python3 tools/verify.py <piece>/renders/<file>.mp4 <word-count>
 # then the thumbnail, then the upload and the read-back
 ```
 

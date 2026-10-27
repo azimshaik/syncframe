@@ -5,13 +5,17 @@ from a topic or a draft, this is the whole job.
 
 ## The commands
 
-```bash
-bash tools/doctor.sh                                              # prerequisites, installs nothing
-export GEMINI_API_KEY=...                                         # the free key, for the default engine
-python3 tools/tts.py <script.txt> <piece>/assets/voice            # one continuous take, boundaries measured
-python3 templates/composition-generator.py <piece> --motifs graph,steps,bars,basic   # one beat per paragraph
-cd <piece> && npm run check && npm run render
-python3 tools/verify.py <piece>/renders/*.mp4 <word-count>        # check the file, not the project
+Use `python3` on macOS and Linux, or `py -3` in Windows PowerShell.
+Use the native shell syntax to set `GEMINI_API_KEY`, or put the key in `.env`.
+
+```text
+<python> tools/doctor.py                                         # prerequisites, installs nothing
+<python> tools/tts.py <script.txt> <piece>/assets/voice           # one take, measured boundaries
+<python> templates/composition-generator.py <piece> --motifs graph,steps,bars,basic
+cd <piece>
+npm run check
+npm run render
+<python> tools/verify.py <piece>/renders/<file>.mp4 <word-count> # check the file, not the project
 ```
 
 Flags that change the output:

@@ -2,6 +2,7 @@
 """Generate a beat-timed composition from a measured narration take.
 
 Usage: python3 templates/composition-generator.py <project-dir> [--vertical] [--motifs a,b,c] [--theme dark|bright]
+Windows PowerShell: use py -3 instead of python3.
 
 Reads <project>/assets/voice/timings.json, or <project>/vo/timings.json.
 Writes <project>/index.html: one beat per paragraph, each beat placed on the measured
@@ -147,7 +148,7 @@ if VERTICAL:
     MOTIF_TOP, MOTIF_BOTTOM = 380, 1180
     RMAX_X, RMAX_Y = 400, 400
     CAP_CHARS = 156
-    CAP = ".cap { left:90px; width:900px; bottom:430px; font-size:46px; line-height:1.3; }"
+    CAP = ".cap { left:90px; width:900px; bottom:430px; font-size:46px; line-height:1.3; text-align:center; }"
     NUM = ".counter { right:90px; top:210px; }"
     TINY = ".tiny { left:90px; top:200px; }"
 else:
@@ -155,7 +156,7 @@ else:
     MOTIF_TOP, MOTIF_BOTTOM = 170, 740
     RMAX_X, RMAX_Y = 620, 285
     CAP_CHARS = 236
-    CAP = ".cap { left:140px; width:1240px; bottom:110px; font-size:34px; line-height:1.4; }"
+    CAP = ".cap { left:340px; width:1240px; bottom:110px; font-size:34px; line-height:1.4; text-align:center; }"
     NUM = ".counter { right:150px; bottom:120px; }"
     TINY = ".tiny { right:140px; top:96px; }"
 

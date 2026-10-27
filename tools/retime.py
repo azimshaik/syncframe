@@ -2,6 +2,7 @@
 """Correct a take to a target length, and move every beat boundary with it.
 
 Usage: python3 tools/retime.py <vo-dir> <target-seconds>
+Windows PowerShell: use py -3 instead of python3.
 
 A tempo change scales every time in the take by one constant, so every boundary is
 scaled by the same factor. Do not re-measure. The original take is kept as

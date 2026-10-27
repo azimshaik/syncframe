@@ -2,13 +2,15 @@
 """Check the finished file, not the project.
 
 Usage: python3 tools/verify.py <file.mp4> [word-count] ["phrase" ...]
+Windows PowerShell: use py -3 instead of python3.
 
 Reports the contract (size, frame rate, frames, duration, audio stream), the loudness,
 every silence of 0.6s or more, the pace if you give the word count, and whether each
 phrase you name survived. The phrase check reads the audio back through Gemini, so it
-needs GEMINI_API_KEY; without a key the rest still runs.
+needs GEMINI_API_KEY or GOOGLE_API_KEY, from the environment or a .env file; without
+a key the rest still runs.
 """
-import base64, json, os, pathlib, re, subprocess, sys, urllib.request
+import base64, json, os, pathlib, re, subprocess, sys, tempfile, urllib.request
 
 USAGE = (__doc__ or "").strip()
 if len(sys.argv) < 2:
@@ -51,18 +53,39 @@ if words:
     print(f"pace       {words / (dur / 60):.0f} wpm of finished runtime")
 print(f"dead air   gaps over 0.6s: {pauses or 'none'}  ->  {dead}s of {dur:.1f}s")
 
-key = os.environ.get("GEMINI_API_KEY", "")
+env_values = {}
+env_files = []
+directory = pathlib.Path.cwd()
+for _ in range(5):
+    env_files.append(directory / ".env")
+    if directory.parent == directory:
+        break
+    directory = directory.parent
+env_files.extend((
+    pathlib.Path("~/.env").expanduser(),
+    pathlib.Path("~/.config/syncframe/.env").expanduser(),
+))
+for env_file in env_files:
+    if not env_file.is_file():
+        continue
+    for line in env_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+        match = re.match(r"\s*([A-Za-z0-9_]+)\s*=\s*(.*)", line)
+        if match:
+            env_values.setdefault(match.group(1), match.group(2).strip().strip("\"'"))
+key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+       or env_values.get("GEMINI_API_KEY") or env_values.get("GOOGLE_API_KEY") or "")
 if phrases and not key:
-    print("phrases    skipped: set GEMINI_API_KEY to read the audio back")
+    print("phrases    skipped: set GEMINI_API_KEY or GOOGLE_API_KEY to read the audio back")
 elif phrases:
-    mp3 = pathlib.Path("/tmp") / f"{path.stem}-check.mp3"
-    sh(["ffmpeg", "-y", "-loglevel", "error", "-i", str(path), "-vn", "-ac", "1", "-ar", "16000",
-        "-b:a", "64k", str(mp3)])
-    body = {"contents": [{"parts": [
-        {"text": "Transcribe the speech verbatim with [mm:ss] timestamps. Then say in one sentence whether "
-                 "it sounds energetic or flat."},
-        {"inline_data": {"mime_type": "audio/mp3", "data": base64.b64encode(mp3.read_bytes()).decode()}}]}],
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1500}}
+    with tempfile.TemporaryDirectory(prefix="syncframe-verify-") as tmp:
+        mp3 = pathlib.Path(tmp) / f"{path.stem}-check.mp3"
+        sh(["ffmpeg", "-y", "-loglevel", "error", "-i", str(path), "-vn", "-ac", "1", "-ar", "16000",
+            "-b:a", "64k", str(mp3)])
+        body = {"contents": [{"parts": [
+            {"text": "Transcribe the speech verbatim with [mm:ss] timestamps. Then say in one sentence whether "
+                     "it sounds energetic or flat."},
+            {"inline_data": {"mime_type": "audio/mp3", "data": base64.b64encode(mp3.read_bytes()).decode()}}]}],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1500}}
     req = urllib.request.Request(
         f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}",
         data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
