@@ -15,8 +15,7 @@ def version(command):
     return result.stdout.strip()
 
 
-def env_file_values():
-    values = {}
+def env_file_candidates():
     candidates = []
     path = pathlib.Path.cwd()
     for _ in range(5):
@@ -28,8 +27,12 @@ def env_file_values():
         pathlib.Path("~/.env").expanduser(),
         pathlib.Path("~/.config/syncframe/.env").expanduser(),
     ))
+    return candidates
 
-    for path in candidates:
+
+def env_file_values():
+    values = {}
+    for path in env_file_candidates():
         if not path.is_file():
             continue
         for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():

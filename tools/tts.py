@@ -84,10 +84,7 @@ ELEVEN_VOICE_SETTINGS = {
 }
 
 
-def load_env(names):
-    """Read the named keys from the environment, then from ./.env or parent directories. Values are never printed."""
-    out = {}
-    pairs = {}
+def env_file_candidates():
     candidates = []
     p = pathlib.Path.cwd()
     for _ in range(5):
@@ -95,11 +92,19 @@ def load_env(names):
         if p.parent == p:
             break
         p = p.parent
-    candidates.append(pathlib.Path("~/.env").expanduser())
-    candidates.append(pathlib.Path("~/.config/syncframe/.env").expanduser())
+    candidates.extend((
+        pathlib.Path("~/.env").expanduser(),
+        pathlib.Path("~/.config/syncframe/.env").expanduser(),
+    ))
+    return candidates
 
+
+def load_env(names):
+    """Read the named keys from the environment, then from ./.env or parent directories. Values are never printed."""
+    out = {}
+    pairs = {}
     seen = set()
-    for candidate in candidates:
+    for candidate in env_file_candidates():
         if candidate in seen:
             continue
         seen.add(candidate)

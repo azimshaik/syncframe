@@ -28,7 +28,7 @@ and each one is usually one of three things:
 ## Set up
 
 ```bash
-git clone https://github.com/azimshaik/syncframe.git
+git clone https://github.com/spundukura/syncframe.git
 cd syncframe
 python3 tools/doctor.py     # macOS and Linux; use py -3 in Windows PowerShell
 ```
@@ -74,8 +74,9 @@ cycle short:
 - **Look at the frames.** Sample the moment a change happens, then look at it. The checker reads the
   markup, not the picture.
 
-On Windows, run the same steps in PowerShell. Use `py -3` for Python, `Copy-Item` for the copy, and
-`Push-Location` and `Pop-Location` for the project directory:
+On Windows, run the same steps in PowerShell. Use `py -3` for Python, or `python` if `py -3` is not
+available on your machine. Use `Copy-Item` for the copy, and `Push-Location` and `Pop-Location` for the
+project directory:
 
 ```powershell
 npx --yes hyperframes@latest init scratch-piece

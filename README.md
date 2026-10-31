@@ -47,7 +47,7 @@ Narration generation needs a TTS key. Tool and documentation work does not.
 ### Ask your agent
 
 ```bash
-git clone https://github.com/azimshaik/syncframe.git
+git clone https://github.com/spundukura/syncframe.git
 cd syncframe
 ```
 
@@ -106,7 +106,7 @@ If you prefer a file, create a `.env` in the repo root with one line:
 GEMINI_API_KEY=your_key_here
 ```
 
-On Windows, use PowerShell and the Python launcher:
+On Windows, use PowerShell and the Python launcher. If `py -3` is not found, use `python` instead.
 
 ```powershell
 py -3 tools\doctor.py

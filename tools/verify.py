@@ -53,19 +53,23 @@ if words:
     print(f"pace       {words / (dur / 60):.0f} wpm of finished runtime")
 print(f"dead air   gaps over 0.6s: {pauses or 'none'}  ->  {dead}s of {dur:.1f}s")
 
+def env_file_candidates():
+    candidates = []
+    directory = pathlib.Path.cwd()
+    for _ in range(5):
+        candidates.append(directory / ".env")
+        if directory.parent == directory:
+            break
+        directory = directory.parent
+    candidates.extend((
+        pathlib.Path("~/.env").expanduser(),
+        pathlib.Path("~/.config/syncframe/.env").expanduser(),
+    ))
+    return candidates
+
+
 env_values = {}
-env_files = []
-directory = pathlib.Path.cwd()
-for _ in range(5):
-    env_files.append(directory / ".env")
-    if directory.parent == directory:
-        break
-    directory = directory.parent
-env_files.extend((
-    pathlib.Path("~/.env").expanduser(),
-    pathlib.Path("~/.config/syncframe/.env").expanduser(),
-))
-for env_file in env_files:
+for env_file in env_file_candidates():
     if not env_file.is_file():
         continue
     for line in env_file.read_text(encoding="utf-8", errors="ignore").splitlines():
