@@ -9,4 +9,5 @@ media/
 *.wav
 *.mp3
 .env
+scratch-piece/
 HANDOFF.md

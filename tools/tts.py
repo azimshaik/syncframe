@@ -28,7 +28,8 @@ Keys never print. Errors pass through a redactor, so a failed request cannot lea
 import base64, json, os, pathlib, re, subprocess, sys, urllib.error, urllib.request, wave
 from typing import NoReturn
 
-USAGE = "python3 tools/tts.py <script.txt> <out-dir> [voice] [style] [--engine gemini|elevenlabs] [--dry-run] [--check-quota]"
+USAGE = ("python3 tools/tts.py <script.txt> <out-dir> [voice] [style] [--engine gemini|elevenlabs] "
+         "[--dry-run] [--check-quota]\nWindows PowerShell: use py -3 instead of python3.")
 
 FLAGS = {a for a in sys.argv[1:] if a.startswith("--")}
 # A flag's value is not a positional argument. Without this, `--engine elevenlabs` would hand
@@ -83,10 +84,7 @@ ELEVEN_VOICE_SETTINGS = {
 }
 
 
-def load_env(names):
-    """Read the named keys from the environment, then from ./.env or parent directories. Values are never printed."""
-    out = {}
-    pairs = {}
+def env_file_candidates():
     candidates = []
     p = pathlib.Path.cwd()
     for _ in range(5):
@@ -94,11 +92,19 @@ def load_env(names):
         if p.parent == p:
             break
         p = p.parent
-    candidates.append(pathlib.Path("~/.env").expanduser())
-    candidates.append(pathlib.Path("~/.config/syncframe/.env").expanduser())
+    candidates.extend((
+        pathlib.Path("~/.env").expanduser(),
+        pathlib.Path("~/.config/syncframe/.env").expanduser(),
+    ))
+    return candidates
 
+
+def load_env(names):
+    """Read the named keys from the environment, then from ./.env or parent directories. Values are never printed."""
+    out = {}
+    pairs = {}
     seen = set()
-    for candidate in candidates:
+    for candidate in env_file_candidates():
         if candidate in seen:
             continue
         seen.add(candidate)
@@ -175,14 +181,14 @@ if ENGINE == "gemini":
     KEY = env.get("GEMINI_API_KEY") or env.get("GOOGLE_API_KEY") or ""
     SECRETS.append(KEY)
     if not KEY and not DRY:
-        fail("No key. Set GEMINI_API_KEY, or put it in ./.env. Run tools/doctor.sh to check.")
+        fail("No key. Set GEMINI_API_KEY, or put it in ./.env. Run tools/doctor.py to check.")
 else:
     env = load_env(["ELEVENLABS_API_KEY", "EL_VOICE_ID", "VOICE_ID"])
     KEY = env.get("ELEVENLABS_API_KEY", "")
     VOICE = NAMED.get("--voice") or (POS[2] if len(POS) > 2 else env.get("EL_VOICE_ID") or env.get("VOICE_ID") or "")
     SECRETS.append(KEY)
     if not KEY and not DRY:
-        fail("No key. Set ELEVENLABS_API_KEY, or put it in ./.env. Run tools/doctor.sh to check.")
+        fail("No key. Set ELEVENLABS_API_KEY, or put it in ./.env. Run tools/doctor.py to check.")
     if not VOICE and not DRY:
         fail("No voice id. Set EL_VOICE_ID, or put it in ./.env, or pass it as the third argument.\n"
              "The id is in the ElevenLabs voice library next to the voice you cloned.")
@@ -208,7 +214,7 @@ if DRY:
         print(f"endpoint:  POST {ELEVEN_URL}/v1/text-to-speech/<voice-id>?output_format=pcm_24000"
               "\n           (the key travels in the xi-api-key header, so it is never printed here)")
     print(f"script:    {len(PARAGRAPHS)} paragraphs, {len(script.split())} words, {chars} characters")
-    print(f"out:       {OUT}/vo.wav and {OUT}/timings.json")
+    print(f"out:       {OUT / 'vo.wav'} and {OUT / 'timings.json'}")
     print(f"cost:      Gemini free tier, or {chars} characters of the ElevenLabs quota")
     print("dry run: nothing was sent.")
     sys.exit(0)
@@ -312,4 +318,4 @@ print(f"wrote {wav}")
 print(f"wrote {OUT / 'timings.json'}")
 print("starts:", starts)
 print("Pace varies between takes of the same script. If this one feels fast or slow, roll another take,")
-print(f"or correct it: python3 tools/retime.py {OUT} <target-seconds>")
+print(f"or correct it: python3 tools/retime.py \"{OUT}\" <target-seconds> (use py -3 in Windows PowerShell)")

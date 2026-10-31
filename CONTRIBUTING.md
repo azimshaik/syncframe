@@ -28,9 +28,9 @@ and each one is usually one of three things:
 ## Set up
 
 ```bash
-git clone https://github.com/azimshaik/syncframe.git
+git clone https://github.com/spundukura/syncframe.git
 cd syncframe
-bash tools/doctor.sh        # what is missing. It installs nothing.
+python3 tools/doctor.py     # macOS and Linux; use py -3 in Windows PowerShell
 ```
 
 You need Python 3.10 or newer, `ffmpeg` and `ffprobe` on the path, and Node 20 or newer.
@@ -49,17 +49,21 @@ properties when you edit them.
 Work on a scratch piece. Nothing here needs a real subject, and a short script is faster:
 
 ```bash
-npx --yes hyperframes@latest init /tmp/scratch-piece
-cp examples/knowledge-graph-script.txt /tmp/scratch-piece/script.txt
-python3 tools/tts.py /tmp/scratch-piece/script.txt /tmp/scratch-piece/assets/voice
-python3 templates/composition-generator.py /tmp/scratch-piece --motifs graph,steps,bars,basic
-cd /tmp/scratch-piece && npm run check && npm run render
+npx --yes hyperframes@latest init scratch-piece
+cp examples/knowledge-graph-script.txt scratch-piece/script.txt
+python3 tools/tts.py scratch-piece/script.txt scratch-piece/assets/voice
+python3 templates/composition-generator.py scratch-piece --motifs graph,steps,bars,basic
+cd scratch-piece
+npm run check
+npm run render
+cd ..
 ```
 
 Then read the file, not the project:
 
 ```bash
-python3 tools/verify.py /tmp/scratch-piece/renders/*.mp4 593
+VIDEO=$(find scratch-piece/renders -name '*.mp4' -print -quit)
+python3 tools/verify.py "$VIDEO" 593
 ```
 
 The word count is the last argument, and it is the one in `wc -w` of the script. Three habits keep the
@@ -69,6 +73,25 @@ cycle short:
 - **Cut the script to two paragraphs while you work on a drawing.** Two beats show a motif.
 - **Look at the frames.** Sample the moment a change happens, then look at it. The checker reads the
   markup, not the picture.
+
+On Windows, run the same steps in PowerShell. Use `py -3` for Python, or `python` if `py -3` is not
+available on your machine. Use `Copy-Item` for the copy, and `Push-Location` and `Pop-Location` for the
+project directory:
+
+```powershell
+npx --yes hyperframes@latest init scratch-piece
+Copy-Item examples\knowledge-graph-script.txt scratch-piece\script.txt
+py -3 tools\tts.py scratch-piece\script.txt scratch-piece\assets\voice
+py -3 templates\composition-generator.py scratch-piece --motifs graph,steps,bars,basic
+Push-Location scratch-piece
+npm run check
+if ($LASTEXITCODE -eq 0) { npm run render }
+Pop-Location
+$video = Get-ChildItem scratch-piece\renders -Filter *.mp4 | Select-Object -First 1
+py -3 tools\verify.py $video.FullName 593
+```
+
+In the commands below, replace `python3` with `py -3` on Windows. Use backslashes in PowerShell paths.
 
 ## Add a motif pack
 
@@ -85,16 +108,21 @@ A pack reads the text of one paragraph and returns the drawing for that beat. Th
 5. **Print what the tool used**, so a fallback is visible in the output and not silent.
 6. **Respect the caption rule.** The caption is the first sentence of the paragraph. A pack draws
    around it, never through it.
+7. **Keep the caption centered.** The generator places it near the bottom of the frame in both
+   horizontal and vertical layouts. If you change its position or width, check both layouts.
 
 Then check the contrast and look at the picture:
 
 ```bash
-python3 templates/composition-generator.py /tmp/scratch-piece --motifs yourpack
-cd /tmp/scratch-piece && npm run check && npm run render
+python3 templates/composition-generator.py scratch-piece --motifs yourpack
+cd scratch-piece
+npm run check
+npm run render
 ```
 
 `npm run check` reports contrast, and both themes have to pass it. A pack that reads well in the code
 can still be wrong on screen, so render two or three beats and look at them.
+For changes to caption layout, capture and inspect frames in both horizontal and vertical layouts.
 
 ## Add a theme token
 

@@ -8,6 +8,20 @@ part.
 The narration is the timing source. Record one continuous take, measure where each paragraph starts inside it,
 and place every beat on those boundaries. Re-record the voice and the beats move with it.
 
+## Contents
+
+- [The result](#the-result)
+- [Start here](#start-here)
+- [Your own voice](#your-own-voice)
+- [What is in here](#what-is-in-here)
+- [Worked example](#worked-example-the-knowledge-graph-piece)
+- [Requirements](#requirements)
+- [Timing notes](#the-two-numbers-worth-knowing-before-you-start)
+- [What this is not](#what-this-is-not)
+- [Writing style](#writing-style)
+- [Contributing](#contributing)
+- [Licence](#licence)
+
 ## The result
 
 Dark, the reference look. 12 seconds from 1:40:
@@ -27,13 +41,13 @@ because the reference cut draws its bars by hand, while the generator reads a mo
 
 ## Start here
 
-Two ways in. Ask your coding agent, or run the commands yourself. Either way, you bring a key and a script
-with one paragraph per beat.
+Two ways in. Ask your coding agent, or run the commands yourself. Use one paragraph per beat in your script.
+Narration generation needs a TTS key. Tool and documentation work does not.
 
 ### Ask your agent
 
 ```bash
-git clone https://github.com/azimshaik/syncframe.git
+git clone https://github.com/spundukura/syncframe.git
 cd syncframe
 ```
 
@@ -53,19 +67,66 @@ not optional.
 
 ### Or run it yourself
 
-**You bring two things: a key, and a script. One paragraph per beat.**
+**To generate a take, you need a key and a script. Use one paragraph per beat.**
+
+If you do not have a Gemini key yet, generate one in a few clicks:
+
+1. Open https://aistudio.google.com/app/apikey in a browser.
+2. Sign in with your Google account.
+3. Click "Create API key" or "Generate API key".
+4. Copy the key and keep it in the current shell or in a local `.env` file.
+5. Do not commit the key to Git. The repository ignores `.env`.
+
+Example:
 
 ```bash
-bash tools/doctor.sh                        # what is missing. It installs nothing.
-export GEMINI_API_KEY=...                   # a free key from https://aistudio.google.com/apikey
+python3 tools/doctor.py                     # what is missing. It installs nothing.
+export GEMINI_API_KEY=...                   # your new key from https://aistudio.google.com/app/apikey
 
 npx --yes hyperframes@latest init my-piece  # scaffold the renderer project
 $EDITOR my-piece/script.txt                 # one paragraph per beat, plain text
 python3 tools/tts.py my-piece/script.txt my-piece/assets/voice
 python3 templates/composition-generator.py my-piece
-cd my-piece && npm run check && npm run render
-cd .. && python3 tools/verify.py my-piece/renders/*.mp4 <word-count>
+cd my-piece
+npm run check && npm run render
+cd ..
+VIDEO=$(find my-piece/renders -name '*.mp4' -print -quit)
+python3 tools/verify.py "$VIDEO" 593
 ```
+
+For Windows PowerShell, create the key in the current session like this:
+
+```powershell
+$env:GEMINI_API_KEY = "<paste-your-key-here>"
+```
+
+If you prefer a file, create a `.env` in the repo root with one line:
+
+```text
+GEMINI_API_KEY=your_key_here
+```
+
+On Windows, use PowerShell and the Python launcher. If `py -3` is not found, use `python` instead.
+
+```powershell
+py -3 tools\doctor.py
+$env:GEMINI_API_KEY = "..."
+npx --yes hyperframes@latest init my-piece
+notepad my-piece\script.txt
+py -3 tools\tts.py my-piece\script.txt my-piece\assets\voice
+py -3 templates\composition-generator.py my-piece
+Push-Location my-piece
+npm run check
+if ($LASTEXITCODE -eq 0) { npm run render }
+Pop-Location
+$video = Get-ChildItem my-piece\renders -Filter *.mp4 | Select-Object -First 1
+py -3 tools\verify.py $video.FullName 593
+```
+
+On Windows, run `tools\doctor.py` directly. `tools\doctor.sh` is a POSIX shell wrapper.
+
+On macOS and Linux, use `python3` and the Bash commands above. On Windows, use `py -3` and PowerShell
+commands. Replace `593` with the word count of your script.
 
 That is the whole path. `examples/knowledge-graph-script.txt` is the script behind the worked example below,
 so you can run the steps above unchanged and get the same shape of video out.
@@ -100,8 +161,8 @@ A pack with nothing to work from falls back to `basic` for that beat, and the to
 used. That is why the worked example writes its numbers as words: the voice reads them aloud, and the `bars`
 pack wants digits. Write one paragraph with digits when you want the bars.
 
-The caption for a beat is the first sentence of its paragraph, so it stays one line. A caption of four or five
-lines reads as a subtitle dump, and the narration rules in `STYLE.md` do not allow it.
+The caption for a beat is the first sentence of its paragraph, centered near the bottom of the frame. A
+caption of four or five lines reads as a subtitle dump, and the narration rules in `STYLE.md` do not allow it.
 
 ### Background
 
@@ -139,6 +200,14 @@ export EL_VOICE_ID=...             # the id of your voice or clone
 python3 tools/tts.py my-piece/script.txt my-piece/assets/voice --engine elevenlabs
 ```
 
+In PowerShell, set the same values for the current session:
+
+```powershell
+$env:ELEVENLABS_API_KEY = "..."
+$env:EL_VOICE_ID = "..."
+py -3 tools\tts.py my-piece\script.txt my-piece\assets\voice --engine elevenlabs
+```
+
 Then the chain is unchanged: generate the composition, `npm run check`, `npm run render`.
 
 **Check the quota before you plan a re-record.** One three minute piece is about 3,300 characters. The
@@ -173,7 +242,7 @@ would be read aloud as part of the narration.
 | `tools/tts.py` | One continuous narration take from your script, with the start of every paragraph measured and snapped to the pauses the speaker took. Two engines: Gemini by default, ElevenLabs with `--engine elevenlabs` for a voice of your own. Reads keys from the environment or `./.env`, and masks them in everything it prints |
 | `tools/retime.py` | Correct a take to a target length, and rescale every boundary with it |
 | `tools/verify.py` | Check the finished file: size, frame rate, loudness, dead air, pace, and whether your phrases survived |
-| `tools/doctor.sh` | What this needs, and what is missing. It installs nothing |
+| `tools/doctor.py` | What this needs, and what is missing. It installs nothing |
 | `templates/composition-generator.py` | Build the composition: one beat per paragraph, four motif packs (`basic`, `graph`, `bars`, `steps`), two themes (`dark`, `bright`), beats placed on the measured boundaries |
 | `examples/knowledge-graph-script.txt` | The script of the worked example below |
 | `STYLE.md` | The writing style: the ASD-STE100 rules, the word limits, the approved verb forms, the dictionary substitutions, and the caption and pacing rules |
@@ -215,7 +284,7 @@ Three lessons from that build became rules:
 
 ## Requirements
 
-- Python 3.10 or newer, with `ffmpeg` and `ffprobe` on the path
+- Python 3.10 or newer (`python3` on macOS and Linux, `py -3` on Windows), with `ffmpeg` and `ffprobe` on the path
 - Node 20 or newer. The composition targets [HyperFrames](https://hyperframes.heygen.com) (`npx hyperframes`),
   an HTML/GSAP video renderer; the pattern is portable to any renderer that can seek a timeline and capture
   frames

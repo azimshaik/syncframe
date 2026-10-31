@@ -65,6 +65,8 @@ sequenceDiagram
 | Check, before rendering | `npx hyperframes check` | lint findings, layout overlap, motion errors, contrast below the threshold |
 | Verify, on the rendered file | `python3 tools/verify.py out.mp4 <duration> "<first line>" "<last line>"` | wrong pace, dead air, or a line that did not survive the mix |
 
+Use `python3` on macOS and Linux, or `py -3` in Windows PowerShell.
+
 Both gates loop back to the composition, not forward to the upload. A project can pass its own check and the
 file still be wrong, which is why the second gate reads the mp4 and not the project.
 
